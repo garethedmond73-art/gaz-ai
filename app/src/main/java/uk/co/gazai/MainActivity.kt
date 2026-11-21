@@ -84,10 +84,18 @@ private fun GazAiScreen(context: Context) {
     val ai = viewModel<LocalAiViewModel>()
     val aiState by ai.state.collectAsStateWithLifecycle()
 
-    LaunchedEffect(aiState.reply) {
-        if (aiState.reply.isNotEmpty() && lines.lastOrNull()?.role == "assistant") {
-            lines[lines.lastIndex] = ChatLine("assistant", aiState.reply)
-            history.save(lines)
+    LaunchedEffect(aiState.reply, aiState.busy, aiState.error) {
+        if (lines.lastOrNull()?.role == "assistant") {
+            val visibleReply = when {
+                aiState.reply.isNotEmpty() -> aiState.reply
+                aiState.busy -> "Thinking…"
+                aiState.error != null -> aiState.error!!
+                else -> lines.last().text
+            }
+            if (visibleReply != lines.last().text) {
+                lines[lines.lastIndex] = ChatLine("assistant", visibleReply)
+                history.save(lines)
+            }
         }
     }
 
@@ -203,7 +211,13 @@ private fun GazAiScreen(context: Context) {
                             history.save(lines)
                             draft = ""
                         }
-                    }, enabled = draft.isNotBlank() && !aiState.busy) { Text(if (mode == "Chat") "Send" else "Save note") }
+                    }, enabled = draft.isNotBlank() && !aiState.busy) {
+                        Text(
+                            if (mode == "Chat" && aiState.busy) "Thinking…"
+                            else if (mode == "Chat") "Send" else "Save note",
+                            color = Color.White
+                        )
+                    }
                     TextButton(onClick = {
                         lines.clear()
                         history.save(lines)
