@@ -105,8 +105,8 @@ object StarterLibrary {
     fun promptContext(query: String): String {
         val matches = search(query)
         if (matches.isEmpty()) return ""
-        return matches.joinToString("\\n\\n") { entry ->
-            "[Library: ${entry.collection} / ${entry.title}]\\n${entry.body}\\nSource: ${entry.sourceName} — ${entry.sourceUrl}"
+        return matches.joinToString("\n\n") { entry ->
+            "[Library: ${entry.collection} / ${entry.title}]\n${entry.body}\nSource: ${entry.sourceName} — ${entry.sourceUrl}"
         }
     }
 }
