@@ -27,6 +27,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -35,6 +36,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.viewmodel.compose.viewModel
 import org.json.JSONArray
 import org.json.JSONObject
 
@@ -78,6 +81,15 @@ private fun GazAiScreen(context: Context) {
     val lines = remember { mutableStateListOf<ChatLine>().apply { addAll(history.load()) } }
     var mode by remember { mutableStateOf("Chat") }
     var draft by remember { mutableStateOf("") }
+    val ai = viewModel<LocalAiViewModel>()
+    val aiState by ai.state.collectAsStateWithLifecycle()
+
+    LaunchedEffect(aiState.reply) {
+        if (aiState.reply.isNotEmpty() && lines.lastOrNull()?.role == "assistant") {
+            lines[lines.lastIndex] = ChatLine("assistant", aiState.reply)
+            history.save(lines)
+        }
+    }
 
     MaterialTheme {
         Surface(modifier = Modifier.fillMaxSize(), color = Color(0xFF101820)) {
@@ -96,13 +108,39 @@ private fun GazAiScreen(context: Context) {
                         Text(if (mode == "Chat") "Offline chat" else "Investigation workspace",
                             style = MaterialTheme.typography.titleMedium)
                         Text(
-                            if (mode == "Chat")
-                                "Your conversation is saved on this phone. The local AI model still needs to be added."
-                            else
-                                "Capture a question, then organise evidence for and against it. AI analysis will be enabled when the local model is integrated.",
+                            if (mode == "Chat") {
+                                when {
+                                    aiState.ready -> "Your offline AI is ready. Messages are answered on this phone."
+                                    aiState.loading -> "Loading the offline AI model. This can take a little while."
+                                    aiState.downloading -> "Downloading the offline model: " + aiState.downloadProgress + "%"
+                                    aiState.modelDownloaded -> "The model is downloaded and ready to load."
+                                    else -> "Your conversation is saved on this phone. Download the small local AI model to enable offline answers."
+                                }
+                            } else {
+                                "Capture a question, then organise evidence for and against it. Your notes stay on this phone."
+                            },
                             style = MaterialTheme.typography.bodySmall
                         )
                     }
+                }
+                if (mode == "Chat" && !aiState.ready) {
+                    Button(
+                        onClick = { if (aiState.modelDownloaded) ai.loadModel() else ai.downloadModel() },
+                        enabled = !aiState.downloading && !aiState.loading,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text(
+                            when {
+                                aiState.downloading -> "Downloading model… " + aiState.downloadProgress + "%"
+                                aiState.loading -> "Loading Gaz AI…"
+                                aiState.modelDownloaded -> "Load offline AI"
+                                else -> "Download offline AI (328 MiB)"
+                            }
+                        )
+                    }
+                }
+                aiState.error?.let { message ->
+                    Text(message, color = Color(0xFFFFB4AB), style = MaterialTheme.typography.bodySmall)
                 }
                 Text("Conversation", color = Color.White, style = MaterialTheme.typography.titleMedium)
                 LazyColumn(
@@ -153,20 +191,30 @@ private fun GazAiScreen(context: Context) {
                         val message = draft.trim()
                         if (message.isNotEmpty()) {
                             lines.add(ChatLine("user", message))
-                            lines.add(ChatLine("assistant",
-                                "Saved on this device. The offline language model is not connected yet, so Gaz AI cannot generate an AI answer at this stage."))
+                            if (mode == "Chat" && aiState.ready) {
+                                lines.add(ChatLine("assistant", ""))
+                                ai.send(message)
+                            } else if (mode == "Chat") {
+                                lines.add(ChatLine("assistant",
+                                    "Your message is saved on this phone. Download and load the offline AI model above to get an answer."))
+                            } else {
+                                lines.add(ChatLine("assistant", "Investigation note saved on this phone."))
+                            }
                             history.save(lines)
                             draft = ""
                         }
-                    }, enabled = draft.isNotBlank()) { Text("Save") }
+                    }, enabled = draft.isNotBlank() && !aiState.busy) { Text(if (mode == "Chat") "Send" else "Save note") }
                     TextButton(onClick = {
                         lines.clear()
                         history.save(lines)
                     }) { Text("Clear history", color = Color(0xFFB8C7D1)) }
                 }
                 Spacer(Modifier.height(2.dp))
-                Text("Prototype 0.1 • Local storage enabled • AI engine not yet installed",
-                    color = Color(0xFFB8C7D1), style = MaterialTheme.typography.labelSmall)
+                Text(
+                    if (aiState.ready) "Prototype 0.2 • Offline AI ready • Local storage enabled"
+                    else "Prototype 0.2 • Local storage enabled • Offline model not loaded",
+                    color = Color(0xFFB8C7D1), style = MaterialTheme.typography.labelSmall
+                )
             }
         }
     }
