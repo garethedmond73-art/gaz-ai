@@ -147,7 +147,9 @@ class LocalAiViewModel(app: Application) : AndroidViewModel(app) {
                                 "Do not invent a template, essay structure, or unrelated advice. " +
                                 "If the question is ambiguous, ask one short clarifying question. " +
                                 "If you are unsure, say so. You are running offline and must not " +
-                                "claim to have searched the internet."
+                                "claim to have searched the internet. Use supplied local library notes when relevant. " +
+                                "Distinguish source facts from interpretation and uncertainty. " +
+                                "Mention the supplied source title when using a library note."
                         )
                     )
                 )
@@ -168,7 +170,10 @@ class LocalAiViewModel(app: Application) : AndroidViewModel(app) {
             _state.value = _state.value.copy(busy = true, reply = "", error = null)
             try {
                 withTimeout(120_000) {
-                    checkNotNull(conversation).sendMessageAsync(prompt).collect { message ->
+                    val libraryNotes = StarterLibrary.promptContext(prompt)
+                    val groundedPrompt = if (libraryNotes.isBlank()) prompt else
+                        "Question: $prompt\\n\\nRelevant offline library notes (use only where relevant; do not treat them as exhaustive):\\n$libraryNotes"
+                    checkNotNull(conversation).sendMessageAsync(groundedPrompt).collect { message ->
                         _state.value = _state.value.copy(reply = _state.value.reply + message.toString())
                     }
                 }
