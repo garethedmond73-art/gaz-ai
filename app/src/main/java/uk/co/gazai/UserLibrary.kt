@@ -36,7 +36,7 @@ object UserLibrary {
                 runCatching { ImportedDocument(file.name.substringAfter('_'), file.readText(), file.name) }.getOrNull()
             } ?: emptyList()
 
-    fun promptContext(context: Context, query: String, limit: Int = 3): String {
+    fun promptContext(context: Context, query: String, limit: Int = 2): String {
         val terms = query.lowercase().split(Regex("[^\\p{L}\\p{N}]+")).filter { it.length > 2 }.toSet()
         if (terms.isEmpty()) return ""
         return load(context).map { doc ->
@@ -45,7 +45,11 @@ object UserLibrary {
             doc to score
         }.filter { it.second > 0 }.sortedByDescending { it.second }.take(limit)
             .joinToString("\n\n") { (doc, _) ->
-                "[Imported library: ${doc.name}]\n${doc.text.take(5000)}"
+                val lower = doc.text.lowercase()
+                val matchAt = terms.asSequence().map { lower.indexOf(it) }.filter { it >= 0 }.minOrNull() ?: 0
+                val start = (matchAt - 250).coerceAtLeast(0)
+                val excerpt = doc.text.substring(start, (start + 700).coerceAtMost(doc.text.length))
+                "[Imported library: ${doc.name}]\n$excerpt"
             }
     }
 
