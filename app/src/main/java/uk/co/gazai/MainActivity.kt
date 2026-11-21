@@ -109,11 +109,11 @@ private fun GazAiScreen(context: Context) {
                 Text("Your assistant. Your device. Your data.", color = Color(0xFFB8C7D1), style = MaterialTheme.typography.bodySmall)
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     ModeButton("Chat", mode == "Chat") { mode = "Chat" }
-                    ModeButton("Truth Detective", mode == "Truth Detective") { mode = "Truth Detective" }
+                    ModeButton("Truth Detective", mode == "Truth Detective") { mode = "Truth Detective" }\n                    ModeButton("Library", mode == "Library") { mode = "Library" }
                 }
                 Card(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(14.dp)) {
                     Column(Modifier.padding(8.dp)) {
-                        Text(if (mode == "Chat") "Offline chat" else "Investigation workspace",
+                        Text(when (mode) { "Chat" -> "Offline chat"; "Library" -> "Offline knowledge library"; else -> "Investigation workspace" },
                             style = MaterialTheme.typography.titleSmall)
                         Text(
                             if (mode == "Chat") {
@@ -155,7 +155,7 @@ private fun GazAiScreen(context: Context) {
                     modifier = Modifier.weight(1f).fillMaxWidth(),
                     verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    if (lines.isEmpty()) {
+                    if (mode == "Library") {\n                        items(StarterLibrary.entries) { entry ->\n                            Card(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(12.dp)) {\n                                Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {\n                                    Text(entry.collection.uppercase(), style = MaterialTheme.typography.labelSmall)\n                                    Text(entry.title, style = MaterialTheme.typography.titleMedium)\n                                    Text(entry.body, style = MaterialTheme.typography.bodyMedium)\n                                    Text("Source: ${entry.sourceName} · ${entry.sourceUrl}", style = MaterialTheme.typography.bodySmall)\n                                }\n                            }\n                        }\n                    } else if (lines.isEmpty()) {
                         item { Text("Start by typing below. Nothing is sent to a cloud AI service.", color = Color(0xFFB8C7D1)) }
                     }
                     items(lines) { line ->
