@@ -40,8 +40,13 @@ data class LocalAiState(
 
 class LocalAiViewModel(app: Application) : AndroidViewModel(app) {
     companion object {
-        const val MODEL_NAME = "Qwen3-0.6B_dynamic_wi4b32_afp32.litertlm"
-        const val MODEL_URL = "https://huggingface.co/litert-community/Qwen3-0.6B/resolve/main/$MODEL_NAME"
+        // Keep the downloaded model and runtime on a known-compatible release pair.
+        // This is the September 2026 Qwen export supported by LiteRT-LM 0.17.1.
+        const val MODEL_NAME = "GazAI-Qwen3-0.6B-compatible.litertlm"
+        const val MODEL_FILE = "Qwen3-0.6B_dynamic_wi4b32_afp32.litertlm"
+        const val MODEL_REVISION = "e6bb3e4a1eb3f663153f0c1c12b735d64be657a7"
+        const val MODEL_URL =
+            "https://huggingface.co/litert-community/Qwen3-0.6B/resolve/$MODEL_REVISION/$MODEL_FILE"
         const val MODEL_MIN_BYTES = 300L * 1024L * 1024L
     }
 
@@ -131,19 +136,18 @@ class LocalAiViewModel(app: Application) : AndroidViewModel(app) {
                     cacheDir = getApplication<Application>().cacheDir.absolutePath
                 )
                 val newEngine = Engine(config)
-                try {
-                    newEngine.initialize()
-                } catch (e: Exception) {
-                    // LiteRT-LM requires an initialized engine before it can be closed.
-                    throw e
-                }
+                newEngine.initialize()
                 engine = newEngine
                 conversation = newEngine.createConversation(
                     ConversationConfig(
                         systemInstruction = Contents.of(
                             "You are Gaz AI, a helpful, honest and curious assistant. " +
-                                "Answer clearly. If you are unsure, say so. You are running offline " +
-                                "and must not claim to have searched the internet."
+                                "Answer the user's exact question, not a different question. " +
+                                "Start with a direct answer and use plain, natural language. " +
+                                "Do not invent a template, essay structure, or unrelated advice. " +
+                                "If the question is ambiguous, ask one short clarifying question. " +
+                                "If you are unsure, say so. You are running offline and must not " +
+                                "claim to have searched the internet."
                         )
                     )
                 )
@@ -164,8 +168,8 @@ class LocalAiViewModel(app: Application) : AndroidViewModel(app) {
             _state.value = _state.value.copy(busy = true, reply = "", error = null)
             try {
                 withTimeout(120_000) {
-                    checkNotNull(conversation).sendMessageAsync(prompt).collect { chunk ->
-                        _state.value = _state.value.copy(reply = _state.value.reply + chunk.toString())
+                    checkNotNull(conversation).sendMessageAsync(prompt).collect { message ->
+                        _state.value = _state.value.copy(reply = _state.value.reply + message.toString())
                     }
                 }
                 if (_state.value.reply.isBlank()) {
