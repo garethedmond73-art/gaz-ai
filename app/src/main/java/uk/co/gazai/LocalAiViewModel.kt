@@ -8,6 +8,7 @@ import com.google.ai.edge.litertlm.Conversation
 import com.google.ai.edge.litertlm.ConversationConfig
 import com.google.ai.edge.litertlm.Engine
 import com.google.ai.edge.litertlm.EngineConfig
+import com.google.ai.edge.litertlm.ThinkingConfig
 import java.io.File
 import java.net.HttpURLConnection
 import java.net.URL
@@ -57,7 +58,14 @@ class LocalAiViewModel(app: Application) : AndroidViewModel(app) {
     val state: StateFlow<LocalAiState> = _state.asStateFlow()
 
     private fun createConversation(): Conversation =
-        checkNotNull(engine).createConversation(ConversationConfig(systemInstruction = Contents.of(SYSTEM_INSTRUCTION)))
+        checkNotNull(engine).createConversation(
+            ConversationConfig(
+                systemInstruction = Contents.of(SYSTEM_INSTRUCTION),
+                // Qwen3 can otherwise spend an unlimited number of tokens in its hidden thinking phase.
+                thinkingConfig = ThinkingConfig(enableThinking = false, thinkingTokenBudget = 0),
+                maxOutputToken = 512
+            )
+        )
 
     fun downloadModel() {
         if (_state.value.downloading || _state.value.modelDownloaded) return
