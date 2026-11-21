@@ -172,7 +172,7 @@ class LocalAiViewModel(app: Application) : AndroidViewModel(app) {
                 withTimeout(120_000) {
                     val libraryNotes = StarterLibrary.promptContext(prompt)
                     val groundedPrompt = if (libraryNotes.isBlank()) prompt else
-                        "Question: $prompt\\n\\nRelevant offline library notes (use only where relevant; do not treat them as exhaustive):\\n$libraryNotes"
+                        "Question: $prompt\n\nRelevant offline library notes (use only where relevant; do not treat them as exhaustive):\n$libraryNotes"
                     checkNotNull(conversation).sendMessageAsync(groundedPrompt).collect { message ->
                         _state.value = _state.value.copy(reply = _state.value.reply + message.toString())
                     }
