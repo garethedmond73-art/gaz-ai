@@ -13,6 +13,8 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.imePadding
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -20,6 +22,7 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -31,6 +34,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import org.json.JSONArray
 import org.json.JSONObject
 
@@ -78,7 +82,7 @@ private fun GazAiScreen(context: Context) {
     MaterialTheme {
         Surface(modifier = Modifier.fillMaxSize(), color = Color(0xFF101820)) {
             Column(
-                modifier = Modifier.fillMaxSize().padding(16.dp),
+                modifier = Modifier.fillMaxSize().navigationBarsPadding().imePadding().padding(16.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
                 Text("GAZ AI", style = MaterialTheme.typography.headlineLarge, color = Color.White)
@@ -122,8 +126,27 @@ private fun GazAiScreen(context: Context) {
                     value = draft,
                     onValueChange = { draft = it },
                     modifier = Modifier.fillMaxWidth(),
-                    label = { Text(if (mode == "Chat") "Message Gaz AI" else "Add an investigation note") },
-                    minLines = 2
+                    label = {
+                        Text(
+                            if (mode == "Chat") "Message Gaz AI" else "Add an investigation note",
+                            color = Color(0xFFB8C7D1)
+                        )
+                    },
+                    minLines = 2,
+                    maxLines = 5,
+                    textStyle = MaterialTheme.typography.bodyLarge.copy(
+                        color = Color.White,
+                        fontSize = 18.sp
+                    ),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedTextColor = Color.White,
+                        unfocusedTextColor = Color.White,
+                        cursorColor = Color(0xFF9B7AE8),
+                        focusedBorderColor = Color(0xFF7653B5),
+                        unfocusedBorderColor = Color(0xFF7653B5),
+                        focusedLabelColor = Color(0xFFB99BFF),
+                        unfocusedLabelColor = Color(0xFFB8C7D1)
+                    )
                 )
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     Button(onClick = {
