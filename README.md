@@ -1,32 +1,27 @@
 # Gaz AI
 
-Gaz AI is an Android assistant with two planned modes:
+Gaz AI is an Android assistant with a local language model and an expandable offline knowledge library.
 
-- **Chat** — a general-purpose assistant.
-- **Truth Detective** — organise claims, evidence for and against, sources, and connections.
+## Current features
+- On-device Qwen model download and local inference; no OpenAI API key or paid AI credits.
+- Built-in starter knowledge pack with original reference notes across Scripture, science, philosophy, symbolism, history and research skills.
+- Keyword retrieval adds relevant starter notes and source links to the local model's prompt.
+- Browse the starter collection in the Library tab.
+- Chat history and investigation notes are stored locally on the device.
 
-## Design goals
+## Knowledge library and licensing
+The initial pack contains original short explanations written for this project, not complete copies of copyrighted books. Each note includes a suggested source link. Linked websites and texts have their own terms; a link in the app does not mean their full contents are bundled or licensed for redistribution.
 
-- Run the language model locally on the phone after its first download.
-- No OpenAI API key, paid API credits, or subscription.
-- Keep conversations and investigation notes on the device.
-- Make internet search optional; ordinary local use must not depend on it.
-- Keep the AI engine separate from the Truth Detective interface so it can potentially be reused in the existing Truth Detective project later.
+The library is designed so additional packs and user-imported material can be added later. Before bundling any full text, verify the exact edition, translation, dataset licence, attribution requirements and whether redistribution/offline use is allowed. Where rights are unclear, keep a source link rather than copying the text.
 
-## Current status
-
-This is the initial Android app scaffold. The interface and local storage are being built first. **The on-device language model is not integrated yet**, so this is not yet a working AI assistant.
-
-The next milestone is integrating an Android native inference runtime (such as llama.cpp), then adding a first-run model download with a clear model-size and storage warning.
-
-## Device and model
-
-The exact phone RAM and available storage should be checked before choosing a model. A compact quantised model is likely to be the sensible starting point; response quality and speed will be lower than a large cloud model.
+## Current limitations
+- The starter retrieval is lightweight keyword matching, not yet semantic/vector search.
+- The initial library is a starter reference collection, not a complete encyclopaedia or a bundle of full scripture editions.
+- The Library screen currently browses built-in notes. Importing PDF/EPUB/TXT files and downloading additional packs is a later milestone.
+- Internet research is not yet implemented; the ordinary chat and starter library work offline once the model is downloaded.
 
 ## Build
-
-Open this project in Android Studio and allow Gradle to sync. The GitHub Actions workflow builds a debug APK on pushes to `main`.
+Open in Android Studio and allow Gradle to sync. GitHub Actions builds a debug APK on pushes to `main`.
 
 ## Privacy
-
-Conversation and investigation data should remain local by default. No cloud AI service or API key is configured in this project.
+Conversation and investigation data stay local by default. The local model does not require a cloud AI service or API key.
