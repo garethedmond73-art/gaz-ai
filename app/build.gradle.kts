@@ -13,7 +13,7 @@ android {
         minSdk = 26
         targetSdk = 35
         versionCode = 1
-        versionName = "0.1.0"
+        versionName = "0.1.1"
     }
 
     buildFeatures { compose = true }
@@ -33,7 +33,7 @@ dependencies {
     implementation("androidx.compose.ui:ui-tooling-preview")
     implementation("androidx.compose.material3:material3")
     implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.8.7")
-    implementation("com.google.ai.edge.litertlm:litertlm-android:0.16.1")
+    implementation("com.google.ai.edge.litertlm:litertlm-android:0.17.1")
     implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.10.0")
     implementation("androidx.lifecycle:lifecycle-runtime-compose:2.10.0")
     debugImplementation("androidx.compose.ui:ui-tooling")
