@@ -13,7 +13,7 @@ data class ImportedDocument(val name: String, val text: String, val fileName: St
 object UserLibrary {
     private fun folder(context: Context) = File(context.filesDir, "knowledge-library").apply { mkdirs() }
 
-    fun import(context: Context, displayName: String, mimeType: String?, bytes: ByteArray): ImportedDocument {
+    fun saveImported(context: Context, displayName: String, mimeType: String?, bytes: ByteArray): ImportedDocument {
         val extension = displayName.substringAfterLast('.', "").lowercase()
         val text = when (extension) {
             "txt", "md", "markdown", "csv", "json", "xml" -> bytes.toString(Charsets.UTF_8)
