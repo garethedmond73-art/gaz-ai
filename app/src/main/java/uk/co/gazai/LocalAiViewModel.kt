@@ -23,6 +23,8 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import kotlinx.coroutines.withTimeout
+import kotlinx.coroutines.TimeoutCancellationException
 import kotlin.coroutines.cancellation.CancellationException
 
 data class LocalAiState(
@@ -161,9 +163,16 @@ class LocalAiViewModel(app: Application) : AndroidViewModel(app) {
         scope.launch {
             _state.value = _state.value.copy(busy = true, reply = "", error = null)
             try {
-                checkNotNull(conversation).sendMessageAsync(prompt).collect { chunk ->
-                    _state.value = _state.value.copy(reply = _state.value.reply + chunk.toString())
+                withTimeout(120_000) {
+                    checkNotNull(conversation).sendMessageAsync(prompt).collect { chunk ->
+                        _state.value = _state.value.copy(reply = _state.value.reply + chunk.toString())
+                    }
                 }
+                if (_state.value.reply.isBlank()) {
+                    error("The offline model finished without producing a reply. Please try again.")
+                }
+            } catch (e: TimeoutCancellationException) {
+                _state.value = _state.value.copy(error = "Gaz AI took too long to answer. Please try again.")
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {
