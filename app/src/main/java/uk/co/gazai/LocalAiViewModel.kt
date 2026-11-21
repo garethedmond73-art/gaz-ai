@@ -35,15 +35,16 @@ data class LocalAiState(
 
 class LocalAiViewModel(app: Application) : AndroidViewModel(app) {
     companion object {
-        const val MODEL_NAME = "GazAI-Qwen3-0.6B-compatible.litertlm"
-        const val MODEL_FILE = "Qwen3-0.6B_dynamic_wi4b32_afp32.litertlm"
-        const val MODEL_REVISION = "e6bb3e4a1eb3f663153f0c1c12b735d64be657a7"
-        const val MODEL_URL = "https://huggingface.co/litert-community/Qwen3-0.6B/resolve/$MODEL_REVISION/$MODEL_FILE"
-        const val MODEL_MIN_BYTES = 300L * 1024L * 1024L
+        const val MODEL_NAME = "GazAI-Qwen3-4B-INT4.litertlm"
+        const val MODEL_FILE = "qwen3_4b_mixed_int4.litertlm"
+        const val MODEL_REVISION = "main"
+        const val MODEL_URL = "https://huggingface.co/litert-community/Qwen3-4B/resolve/$MODEL_REVISION/$MODEL_FILE"
+        const val MODEL_MIN_BYTES = 2L * 1024L * 1024L * 1024L
     }
     private val executor = Executors.newSingleThreadExecutor()
     private val scope = CoroutineScope(SupervisorJob() + executor.asCoroutineDispatcher())
     private val modelFile = File(app.filesDir, MODEL_NAME)
+    init { File(app.filesDir, "GazAI-Qwen3-0.6B-compatible.litertlm").delete() }
     private var engine: Engine? = null
     private var conversation: Conversation? = null
     private val _state = MutableStateFlow(LocalAiState(modelDownloaded = modelFile.exists()))
@@ -133,7 +134,7 @@ class LocalAiViewModel(app: Application) : AndroidViewModel(app) {
                 }
                 if (_state.value.reply.isBlank()) error("The offline model finished without producing a reply. Please try again.")
             } catch (e: TimeoutCancellationException) {
-                _state.value = _state.value.copy(error = "This question took too long for the phone's small offline model. Try a shorter question.")
+                _state.value = _state.value.copy(error = "This question took too long for the offline model. Try a shorter question.")
             } catch (e: CancellationException) { throw e }
             catch (e: Exception) { _state.value = _state.value.copy(error = e.message ?: "The model could not answer.") }
             finally { _state.value = _state.value.copy(busy = false) }
