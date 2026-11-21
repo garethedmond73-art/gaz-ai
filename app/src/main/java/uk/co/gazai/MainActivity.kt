@@ -88,7 +88,7 @@ private fun GazAiScreen(context: Context) {
                     ?.use { cursor -> if (cursor.moveToFirst()) cursor.getString(0) else null } ?: "imported-file"
                 val bytes = context.contentResolver.openInputStream(uri)?.use { it.readBytes() }
                     ?: throw IllegalArgumentException("Could not open the selected file.")
-                val doc = UserLibrary.import(context, name, context.contentResolver.getType(uri), bytes)
+                val doc = UserLibrary.saveImported(context, name, context.contentResolver.getType(uri), bytes)
                 imported.clear()
                 imported.addAll(UserLibrary.load(context))
                 libraryStatus = "Saved ${doc.name} to your on-device library."
@@ -214,7 +214,7 @@ private fun GazAiScreen(context: Context) {
                     )
                 )
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Button(Modifier.weight(1f), onClick = {
+                    Button(onClick = {
                         val message = draft.trim()
                         if (message.isNotEmpty()) {
                             lines.add(ChatLine("user", message))
@@ -229,7 +229,7 @@ private fun GazAiScreen(context: Context) {
                             history.save(lines)
                             draft = ""
                         }
-                    }, enabled = draft.isNotBlank() && !aiState.busy) {
+                    }, modifier = Modifier.weight(1f), enabled = draft.isNotBlank() && !aiState.busy) {
                         Text(if (mode == "Chat" && aiState.busy) "Thinking…" else if (mode == "Chat") "Send" else "Save note")
                     }
                     TextButton(onClick = { lines.clear(); history.save(lines) }) { Text("Clear history", color = Color(0xFFB8C7D1)) }
