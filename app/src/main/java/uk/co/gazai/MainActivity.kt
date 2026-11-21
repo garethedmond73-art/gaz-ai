@@ -1,9 +1,12 @@
 package uk.co.gazai
 
 import android.content.Context
+import android.net.Uri
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -52,25 +55,17 @@ private data class ChatLine(val role: String, val text: String)
 
 private class LocalHistory(context: Context) {
     private val prefs = context.getSharedPreferences("gaz_ai_local", Context.MODE_PRIVATE)
-
-    fun load(): List<ChatLine> {
-        val raw = prefs.getString("chat_history", "[]") ?: "[]"
-        return try {
-            val array = JSONArray(raw)
-            (0 until array.length()).map { index ->
-                val item = array.getJSONObject(index)
-                ChatLine(item.optString("role"), item.optString("text"))
-            }
-        } catch (_: Exception) {
-            emptyList()
+    fun load(): List<ChatLine> = try {
+        val array = JSONArray(prefs.getString("chat_history", "[]") ?: "[]")
+        (0 until array.length()).map { i ->
+            val item = array.getJSONObject(i)
+            ChatLine(item.optString("role"), item.optString("text"))
         }
-    }
+    } catch (_: Exception) { emptyList() }
 
     fun save(lines: List<ChatLine>) {
         val array = JSONArray()
-        lines.forEach { line ->
-            array.put(JSONObject().put("role", line.role).put("text", line.text))
-        }
+        lines.forEach { array.put(JSONObject().put("role", it.role).put("text", it.text)) }
         prefs.edit().putString("chat_history", array.toString()).apply()
     }
 }
@@ -79,15 +74,34 @@ private class LocalHistory(context: Context) {
 private fun GazAiScreen(context: Context) {
     val history = remember { LocalHistory(context) }
     val lines = remember { mutableStateListOf<ChatLine>().apply { addAll(history.load()) } }
+    val imported = remember { mutableStateListOf<ImportedDocument>().apply { addAll(UserLibrary.load(context)) } }
     var mode by remember { mutableStateOf("Chat") }
     var draft by remember { mutableStateOf("") }
+    var libraryStatus by remember { mutableStateOf("") }
     val ai = viewModel<LocalAiViewModel>()
     val aiState by ai.state.collectAsStateWithLifecycle()
+
+    val filePicker = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri: Uri? ->
+        if (uri != null) {
+            try {
+                val name = context.contentResolver.query(uri, arrayOf(android.provider.OpenableColumns.DISPLAY_NAME), null, null, null)
+                    ?.use { cursor -> if (cursor.moveToFirst()) cursor.getString(0) else null } ?: "imported-file"
+                val bytes = context.contentResolver.openInputStream(uri)?.use { it.readBytes() }
+                    ?: throw IllegalArgumentException("Could not open the selected file.")
+                val doc = UserLibrary.import(context, name, context.contentResolver.getType(uri), bytes)
+                imported.clear()
+                imported.addAll(UserLibrary.load(context))
+                libraryStatus = "Saved ${doc.name} to your on-device library."
+            } catch (e: Exception) {
+                libraryStatus = e.message ?: "Could not import this file."
+            }
+        }
+    }
 
     LaunchedEffect(aiState.reply, aiState.busy, aiState.error) {
         if (lines.lastOrNull()?.role == "assistant") {
             val visibleReply = when {
-                aiState.reply.isNotEmpty() -> aiState.reply
+                aiState.reply.isNotEmpty() -> aiState.reply.replace("**", "")
                 aiState.busy -> "Thinking…"
                 aiState.error != null -> aiState.error!!
                 else -> lines.last().text
@@ -100,34 +114,30 @@ private fun GazAiScreen(context: Context) {
     }
 
     MaterialTheme {
-        Surface(modifier = Modifier.fillMaxSize(), color = Color(0xFF101820)) {
+        Surface(Modifier.fillMaxSize(), color = Color(0xFF101820)) {
             Column(
-                modifier = Modifier.fillMaxSize().navigationBarsPadding().imePadding().padding(horizontal = 12.dp, vertical = 8.dp),
+                Modifier.fillMaxSize().navigationBarsPadding().imePadding().padding(horizontal = 12.dp, vertical = 8.dp),
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 Text("GAZ AI", style = MaterialTheme.typography.headlineMedium, color = Color.White)
                 Text("Your assistant. Your device. Your data.", color = Color(0xFFB8C7D1), style = MaterialTheme.typography.bodySmall)
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    ModeButton("Chat", mode == "Chat") { mode = "Chat" }
-                    ModeButton("Truth Detective", mode == "Truth Detective") { mode = "Truth Detective" }
-                    ModeButton("Library", mode == "Library") { mode = "Library" }
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                    ModeButton("Chat", mode == "Chat", Modifier.weight(1f)) { mode = "Chat" }
+                    ModeButton("Truth", mode == "Truth Detective", Modifier.weight(1f)) { mode = "Truth Detective" }
+                    ModeButton("Library", mode == "Library", Modifier.weight(1f)) { mode = "Library" }
                 }
-                Card(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(14.dp)) {
-                    Column(Modifier.padding(8.dp)) {
+                Card(Modifier.fillMaxWidth(), shape = RoundedCornerShape(14.dp)) {
+                    Column(Modifier.padding(10.dp)) {
                         Text(when (mode) { "Chat" -> "Offline chat"; "Library" -> "Offline knowledge library"; else -> "Investigation workspace" },
                             style = MaterialTheme.typography.titleSmall)
                         Text(
-                            if (mode == "Chat") {
-                                when {
-                                    aiState.ready -> "Your offline AI is ready. Messages are answered on this phone."
-                                    aiState.loading -> "Loading the offline AI model. This can take a little while."
-                                    aiState.downloading -> "Downloading the offline model: " + aiState.downloadProgress + "%"
-                                    aiState.modelDownloaded -> "The model is downloaded and ready to load."
-                                    else -> "Your conversation is saved on this phone. Download the small local AI model to enable offline answers."
-                                }
-                            } else {
-                                "Capture a question, then organise evidence for and against it. Your notes stay on this phone."
-                            },
+                            if (mode == "Chat") when {
+                                aiState.ready -> "Your offline AI is ready. Messages are answered on this phone."
+                                aiState.loading -> "Loading the offline AI model. This can take a little while."
+                                aiState.downloading -> "Downloading the offline model: ${aiState.downloadProgress}%"
+                                aiState.modelDownloaded -> "The model is downloaded and ready to load."
+                                else -> "Your conversation is saved on this phone. Download the small local AI model to enable offline answers."
+                            } else "Your notes and imported documents stay on this phone.",
                             style = MaterialTheme.typography.bodySmall
                         )
                     }
@@ -138,27 +148,27 @@ private fun GazAiScreen(context: Context) {
                         enabled = !aiState.downloading && !aiState.loading,
                         modifier = Modifier.fillMaxWidth()
                     ) {
-                        Text(
-                            when {
-                                aiState.downloading -> "Downloading model… " + aiState.downloadProgress + "%"
-                                aiState.loading -> "Loading Gaz AI…"
-                                aiState.modelDownloaded -> "Load offline AI"
-                                else -> "Download offline AI (328 MiB)"
-                            }
-                        )
+                        Text(when {
+                            aiState.downloading -> "Downloading model… ${aiState.downloadProgress}%"
+                            aiState.loading -> "Loading Gaz AI…"
+                            aiState.modelDownloaded -> "Load offline AI"
+                            else -> "Download offline AI (328 MiB)"
+                        })
                     }
                 }
-                aiState.error?.let { message ->
-                    Text(message, color = Color(0xFFFFB4AB), style = MaterialTheme.typography.bodySmall)
+                if (mode == "Library") {
+                    Button(onClick = { filePicker.launch(arrayOf("application/pdf", "application/epub+zip", "text/*", "application/json", "application/xml")) },
+                        modifier = Modifier.fillMaxWidth()) { Text("＋ Add files to library") }
+                    Text("PDF, EPUB, TXT, Markdown, HTML, CSV and JSON · stored on this phone",
+                        color = Color(0xFFB8C7D1), style = MaterialTheme.typography.bodySmall)
+                    if (libraryStatus.isNotBlank()) Text(libraryStatus, color = Color(0xFFB99BFF), style = MaterialTheme.typography.bodySmall)
                 }
-                Text("Conversation", color = Color.White, style = MaterialTheme.typography.titleSmall)
-                LazyColumn(
-                    modifier = Modifier.weight(1f).fillMaxWidth(),
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
+                aiState.error?.let { Text(it, color = Color(0xFFFFB4AB), style = MaterialTheme.typography.bodySmall) }
+                Text(if (mode == "Library") "Your library" else "Conversation", color = Color.White, style = MaterialTheme.typography.titleSmall)
+                LazyColumn(Modifier.weight(1f).fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     if (mode == "Library") {
                         items(StarterLibrary.entries) { entry ->
-                            Card(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(12.dp)) {
+                            Card(Modifier.fillMaxWidth(), shape = RoundedCornerShape(12.dp)) {
                                 Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                                     Text(entry.collection.uppercase(), style = MaterialTheme.typography.labelSmall)
                                     Text(entry.title, style = MaterialTheme.typography.titleMedium)
@@ -167,47 +177,44 @@ private fun GazAiScreen(context: Context) {
                                 }
                             }
                         }
-                    } else if (lines.isEmpty()) {
-                        item { Text("Start by typing below. Nothing is sent to a cloud AI service.", color = Color(0xFFB8C7D1)) }
-                    }
-                    items(lines) { line ->
-                        val isUser = line.role == "user"
-                        Card(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(12.dp)) {
-                            Column(Modifier.background(if (isUser) Color(0xFFDCEBFA) else Color(0xFFE7EDEB)).padding(12.dp)) {
-                                Text(if (isUser) "You" else "Gaz AI", style = MaterialTheme.typography.labelMedium)
-                                Text(line.text)
+                        items(imported, key = { it.fileName }) { doc ->
+                            Card(Modifier.fillMaxWidth(), shape = RoundedCornerShape(12.dp)) {
+                                Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                                    Text("YOUR IMPORTED FILE", style = MaterialTheme.typography.labelSmall)
+                                    Text(doc.name, style = MaterialTheme.typography.titleMedium)
+                                    Text(doc.text.take(1400), style = MaterialTheme.typography.bodyMedium)
+                                    Text("${doc.text.length} characters · saved on this phone", style = MaterialTheme.typography.bodySmall)
+                                }
+                            }
+                        }
+                        if (imported.isEmpty()) item { Text("No personal files added yet. Tap Add files to library.", color = Color(0xFFB8C7D1)) }
+                    } else {
+                        if (lines.isEmpty()) item { Text("Start by typing below. Nothing is sent to a cloud AI service.", color = Color(0xFFB8C7D1)) }
+                        items(lines) { line ->
+                            val isUser = line.role == "user"
+                            Card(Modifier.fillMaxWidth(), shape = RoundedCornerShape(12.dp)) {
+                                Column(Modifier.background(if (isUser) Color(0xFFDCEBFA) else Color(0xFFE7EDEB)).padding(12.dp)) {
+                                    Text(if (isUser) "You" else "Gaz AI", style = MaterialTheme.typography.labelMedium)
+                                    Text(line.text, style = MaterialTheme.typography.bodyLarge)
+                                }
                             }
                         }
                     }
                 }
                 OutlinedTextField(
-                    value = draft,
-                    onValueChange = { draft = it },
-                    modifier = Modifier.fillMaxWidth(),
-                    label = {
-                        Text(
-                            if (mode == "Chat") "Message Gaz AI" else "Add an investigation note",
-                            color = Color(0xFFB8C7D1)
-                        )
-                    },
-                    minLines = 1,
-                    maxLines = 3,
-                    textStyle = MaterialTheme.typography.bodyLarge.copy(
-                        color = Color.White,
-                        fontSize = 18.sp
-                    ),
+                    value = draft, onValueChange = { draft = it }, modifier = Modifier.fillMaxWidth(),
+                    label = { Text(if (mode == "Chat") "Message Gaz AI" else "Add an investigation note", color = Color(0xFFB8C7D1)) },
+                    minLines = 1, maxLines = 3,
+                    textStyle = MaterialTheme.typography.bodyLarge.copy(color = Color.White, fontSize = 18.sp),
                     colors = OutlinedTextFieldDefaults.colors(
-                        focusedTextColor = Color.White,
-                        unfocusedTextColor = Color.White,
-                        cursorColor = Color(0xFF9B7AE8),
-                        focusedBorderColor = Color(0xFF7653B5),
-                        unfocusedBorderColor = Color(0xFF7653B5),
-                        focusedLabelColor = Color(0xFFB99BFF),
+                        focusedTextColor = Color.White, unfocusedTextColor = Color.White,
+                        cursorColor = Color(0xFF9B7AE8), focusedBorderColor = Color(0xFF7653B5),
+                        unfocusedBorderColor = Color(0xFF7653B5), focusedLabelColor = Color(0xFFB99BFF),
                         unfocusedLabelColor = Color(0xFFB8C7D1)
                     )
                 )
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Button(onClick = {
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Button(Modifier.weight(1f), onClick = {
                         val message = draft.trim()
                         if (message.isNotEmpty()) {
                             lines.add(ChatLine("user", message))
@@ -215,8 +222,7 @@ private fun GazAiScreen(context: Context) {
                                 lines.add(ChatLine("assistant", ""))
                                 ai.send(message)
                             } else if (mode == "Chat") {
-                                lines.add(ChatLine("assistant",
-                                    "Your message is saved on this phone. Download and load the offline AI model above to get an answer."))
+                                lines.add(ChatLine("assistant", "Your message is saved on this phone. Load the offline AI model above to get an answer."))
                             } else {
                                 lines.add(ChatLine("assistant", "Investigation note saved on this phone."))
                             }
@@ -224,16 +230,9 @@ private fun GazAiScreen(context: Context) {
                             draft = ""
                         }
                     }, enabled = draft.isNotBlank() && !aiState.busy) {
-                        Text(
-                            if (mode == "Chat" && aiState.busy) "Thinking…"
-                            else if (mode == "Chat") "Send" else "Save note",
-                            color = Color.White
-                        )
+                        Text(if (mode == "Chat" && aiState.busy) "Thinking…" else if (mode == "Chat") "Send" else "Save note")
                     }
-                    TextButton(onClick = {
-                        lines.clear()
-                        history.save(lines)
-                    }) { Text("Clear history", color = Color(0xFFB8C7D1)) }
+                    TextButton(onClick = { lines.clear(); history.save(lines) }) { Text("Clear history", color = Color(0xFFB8C7D1)) }
                 }
             }
         }
@@ -241,7 +240,7 @@ private fun GazAiScreen(context: Context) {
 }
 
 @androidx.compose.runtime.Composable
-private fun ModeButton(label: String, selected: Boolean, onClick: () -> Unit) {
-    if (selected) Button(onClick = onClick) { Text(label) }
-    else TextButton(onClick = onClick) { Text(label, color = Color(0xFFB8C7D1)) }
+private fun ModeButton(label: String, selected: Boolean, modifier: Modifier = Modifier, onClick: () -> Unit) {
+    if (selected) Button(onClick = onClick, modifier = modifier) { Text(label) }
+    else TextButton(onClick = onClick, modifier = modifier) { Text(label, color = Color(0xFFB8C7D1)) }
 }
