@@ -102,19 +102,19 @@ private fun GazAiScreen(context: Context) {
     MaterialTheme {
         Surface(modifier = Modifier.fillMaxSize(), color = Color(0xFF101820)) {
             Column(
-                modifier = Modifier.fillMaxSize().navigationBarsPadding().imePadding().padding(16.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp)
+                modifier = Modifier.fillMaxSize().navigationBarsPadding().imePadding().padding(horizontal = 12.dp, vertical = 8.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                Text("GAZ AI", style = MaterialTheme.typography.headlineLarge, color = Color.White)
-                Text("Your assistant. Your device. Your data.", color = Color(0xFFB8C7D1))
+                Text("GAZ AI", style = MaterialTheme.typography.headlineMedium, color = Color.White)
+                Text("Your assistant. Your device. Your data.", color = Color(0xFFB8C7D1), style = MaterialTheme.typography.bodySmall)
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     ModeButton("Chat", mode == "Chat") { mode = "Chat" }
                     ModeButton("Truth Detective", mode == "Truth Detective") { mode = "Truth Detective" }
                 }
                 Card(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(14.dp)) {
-                    Column(Modifier.padding(12.dp)) {
+                    Column(Modifier.padding(8.dp)) {
                         Text(if (mode == "Chat") "Offline chat" else "Investigation workspace",
-                            style = MaterialTheme.typography.titleMedium)
+                            style = MaterialTheme.typography.titleSmall)
                         Text(
                             if (mode == "Chat") {
                                 when {
@@ -150,7 +150,7 @@ private fun GazAiScreen(context: Context) {
                 aiState.error?.let { message ->
                     Text(message, color = Color(0xFFFFB4AB), style = MaterialTheme.typography.bodySmall)
                 }
-                Text("Conversation", color = Color.White, style = MaterialTheme.typography.titleMedium)
+                Text("Conversation", color = Color.White, style = MaterialTheme.typography.titleSmall)
                 LazyColumn(
                     modifier = Modifier.weight(1f).fillMaxWidth(),
                     verticalArrangement = Arrangement.spacedBy(8.dp)
@@ -178,8 +178,8 @@ private fun GazAiScreen(context: Context) {
                             color = Color(0xFFB8C7D1)
                         )
                     },
-                    minLines = 2,
-                    maxLines = 5,
+                    minLines = 1,
+                    maxLines = 3,
                     textStyle = MaterialTheme.typography.bodyLarge.copy(
                         color = Color.White,
                         fontSize = 18.sp
@@ -223,12 +223,6 @@ private fun GazAiScreen(context: Context) {
                         history.save(lines)
                     }) { Text("Clear history", color = Color(0xFFB8C7D1)) }
                 }
-                Spacer(Modifier.height(2.dp))
-                Text(
-                    if (aiState.ready) "Prototype 0.2 • Offline AI ready • Local storage enabled"
-                    else "Prototype 0.2 • Local storage enabled • Offline model not loaded",
-                    color = Color(0xFFB8C7D1), style = MaterialTheme.typography.labelSmall
-                )
             }
         }
     }
