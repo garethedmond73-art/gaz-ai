@@ -273,7 +273,7 @@ private fun GazAiScreen(context: Context) {
                                 Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                                     Text("YOUR IMPORTED FILE", style = MaterialTheme.typography.labelSmall)
                                     Text(doc.name, style = MaterialTheme.typography.titleMedium)
-                                    Text(doc.text.take(1400), style = MaterialTheme.typography.bodyMedium)
+                                    Text(doc.text, style = MaterialTheme.typography.bodyMedium)
                                     Text("${doc.text.length} characters · saved on this phone", style = MaterialTheme.typography.bodySmall)
                                 }
                             }
