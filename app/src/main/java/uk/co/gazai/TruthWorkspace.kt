@@ -164,7 +164,7 @@ internal fun TruthWorkspace(context: Context, ai: LocalAiViewModel, aiState: Loc
 
     Column(Modifier.fillMaxSize(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(5.dp)) {
-            listOf("Investigate", "Evidence", "Connections").forEach { label ->
+            listOf("Investigate", "Evidence", "Connections", "Question tree").forEach { label ->
                 if (tab == label) Button(onClick = { tab = label }, modifier = Modifier.weight(1f),
                     contentPadding = PaddingValues(horizontal = 4.dp, vertical = 7.dp)) { Text(label, fontSize = 12.sp) }
                 else TextButton(onClick = { tab = label }, modifier = Modifier.weight(1f),
@@ -258,6 +258,9 @@ internal fun TruthWorkspace(context: Context, ai: LocalAiViewModel, aiState: Loc
                     }
                     if (evidence.isEmpty()) item { Text("No evidence saved yet. Add a record or investigate a question.", color = Color(0xFFB8C7D1)) }
                 }
+            }
+            "Question tree" -> {
+                EndlessInvestigation(context, ai, aiState, contextNotes)
             }
             else -> {
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
