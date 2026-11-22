@@ -12,6 +12,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import org.json.JSONArray
@@ -120,8 +121,13 @@ internal fun TruthWorkspace(context: Context, ai: LocalAiViewModel, aiState: Loc
                 witnessGroups.forEach { Text("• $it", color = Color(0xFFB8C7D1), fontSize = 12.sp) }
                 Text("Start with a question", color = Color.White, style = MaterialTheme.typography.titleSmall)
                 starterQuestions.forEach { q ->
-                    TextButton(onClick = { question = q }, contentPadding = PaddingValues(vertical = 1.dp)) {
-                        Text(q, fontSize = 12.sp, lineHeight = 16.sp)
+                    TextButton(
+                        onClick = { question = q },
+                        modifier = Modifier.fillMaxWidth(),
+                        contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp)
+                    ) {
+                        Text(q, modifier = Modifier.fillMaxWidth(), textAlign = TextAlign.Start,
+                            fontSize = 12.sp, lineHeight = 16.sp)
                     }
                 }
                 OutlinedTextField(value = question, onValueChange = { question = it },
@@ -208,7 +214,10 @@ internal fun TruthWorkspace(context: Context, ai: LocalAiViewModel, aiState: Loc
     if (showAddEvidence) AlertDialog(
         onDismissRequest = { showAddEvidence = false },
         title = { Text("Add evidence to ledger") },
-        text = { Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+        text = { Column(
+            modifier = Modifier.heightIn(max = 440.dp).verticalScroll(rememberScrollState()),
+            verticalArrangement = Arrangement.spacedBy(6.dp)
+        ) {
             OutlinedTextField(value = claim, onValueChange = { claim = it }, label = { Text("Claim or observation") })
             witnessGroups.forEach { label ->
                 Row { RadioButton(selected = group == label, onClick = { group = label }); Text(label, modifier = Modifier.padding(top = 12.dp), fontSize = 12.sp) }
@@ -228,7 +237,10 @@ internal fun TruthWorkspace(context: Context, ai: LocalAiViewModel, aiState: Loc
     if (showAddLink) AlertDialog(
         onDismissRequest = { showAddLink = false },
         title = { Text("Connect evidence") },
-        text = { Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        text = { Column(
+            modifier = Modifier.heightIn(max = 440.dp).verticalScroll(rememberScrollState()),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
             Text("Choose two different records. The connection is a research hypothesis.", style = MaterialTheme.typography.bodySmall)
             evidence.forEach { item ->
                 Row {
