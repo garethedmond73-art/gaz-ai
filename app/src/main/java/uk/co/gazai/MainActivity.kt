@@ -330,12 +330,21 @@ private fun GazAiScreen(context: Context) {
                         }, color = Color(0xFFB8C7D1)
                     ) },
                     minLines = 1, maxLines = 3,
-                    textStyle = MaterialTheme.typography.bodyLarge.copy(color = Color.White, fontSize = 18.sp),
+                    textStyle = MaterialTheme.typography.bodyLarge.copy(
+                        color = Color(0xFFFFFFFF), fontSize = 19.sp, fontWeight = FontWeight.Medium
+                    ),
                     colors = OutlinedTextFieldDefaults.colors(
-                        focusedTextColor = Color.White, unfocusedTextColor = Color.White,
-                        cursorColor = Color(0xFF9B7AE8), focusedBorderColor = Color(0xFF7653B5),
-                        unfocusedBorderColor = Color(0xFF7653B5), focusedLabelColor = Color(0xFFB99BFF),
-                        unfocusedLabelColor = Color(0xFFB8C7D1)
+                        focusedTextColor = Color(0xFFFFFFFF),
+                        unfocusedTextColor = Color(0xFFFFFFFF),
+                        disabledTextColor = Color(0xFFE0E7EF),
+                        cursorColor = Color(0xFFFFD166),
+                        focusedBorderColor = Color(0xFFB99BFF),
+                        unfocusedBorderColor = Color(0xFF9B7AE8),
+                        focusedLabelColor = Color(0xFFD4C2FF),
+                        unfocusedLabelColor = Color(0xFFB8C7D1),
+                        focusedContainerColor = Color(0xFF202D39),
+                        unfocusedContainerColor = Color(0xFF202D39),
+                        disabledContainerColor = Color(0xFF202D39)
                     )
                 )
                 if (mode != "Library") {
