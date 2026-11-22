@@ -218,7 +218,7 @@ class LocalAiViewModel(app: Application) : AndroidViewModel(app) {
                 }.getOrNull().orEmpty()
                 throw IllegalStateException(
                     when {
-                        code == 429 -> "The free AI provider is busy or rate-limited. Gaz AI offline is unaffected."
+                        code == 429 -> "The free AI provider is busy or rate-limited. Gaz AI offline mode is unaffected."
                         detail.isNotBlank() -> "Free AI error $code: $detail"
                         else -> "The free AI service returned error $code."
                     }
@@ -277,7 +277,7 @@ class LocalAiViewModel(app: Application) : AndroidViewModel(app) {
                 _state.value = _state.value.copy(strongerReply = answer)
             } catch (e: Exception) {
                 _state.value = _state.value.copy(strongerError =
-                    e.message ?: "The free AI service is unavailable. Your offline Gaz AI is still available.")
+                    e.message ?: "The free AI service is unavailable. Gaz AI offline mode is still available.")
             } finally {
                 _state.value = _state.value.copy(strongerBusy = false)
             }

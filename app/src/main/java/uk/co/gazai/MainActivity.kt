@@ -19,6 +19,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
@@ -110,7 +111,7 @@ private fun GazAiScreen(context: Context) {
     }
 
     // Follow streamed reply updates as well as newly added messages, so the
-    // newest text remains visible while Gaz AI is generating a response.
+    // newest text remains visible while Truth Detective is generating a response.
     LaunchedEffect(lines.size, lines.lastOrNull()?.text) {
         if (lines.isNotEmpty()) conversationListState.scrollToItem(lines.lastIndex)
     }
@@ -133,7 +134,7 @@ private fun GazAiScreen(context: Context) {
     MaterialTheme {
         Surface(Modifier.fillMaxSize(), color = Color(0xFF101820)) {
             Column(
-                Modifier.fillMaxSize().navigationBarsPadding().imePadding().padding(horizontal = 12.dp, vertical = 8.dp),
+                Modifier.fillMaxSize().statusBarsPadding().navigationBarsPadding().imePadding().padding(horizontal = 12.dp, vertical = 6.dp),
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 aiState.sourcesToSave?.let { sources ->
@@ -170,13 +171,16 @@ private fun GazAiScreen(context: Context) {
                         }
                     )
                 }
-                Text("GAZ AI", style = MaterialTheme.typography.headlineSmall, color = Color.White, fontSize = 24.sp)
+                Text("TRUTH DETECTIVE", style = MaterialTheme.typography.headlineSmall, color = Color.White, fontSize = 22.sp, lineHeight = 26.sp)
                 Text("Your assistant. Your device. Your data.", color = Color(0xFFB8C7D1), fontSize = 12.sp)
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                     ModeButton("Chat", mode == "Chat", Modifier.weight(1f)) { mode = "Chat" }
                     ModeButton("Truth", mode == "Truth Detective", Modifier.weight(1f)) { mode = "Truth Detective" }
                     ModeButton("Library", mode == "Library", Modifier.weight(1f)) { mode = "Library" }
                 }
+                if (mode == "Truth Detective") {
+                    TruthWorkspace(context, ai, aiState)
+                } else {
                 Card(Modifier.fillMaxWidth(), shape = RoundedCornerShape(14.dp)) {
                     Column(Modifier.padding(10.dp)) {
                         Text(when (mode) { "Chat" -> "Offline chat"; "Library" -> "Offline knowledge library"; else -> "Investigation workspace" },
@@ -269,7 +273,7 @@ private fun GazAiScreen(context: Context) {
                                 Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                                     Text("YOUR IMPORTED FILE", style = MaterialTheme.typography.labelSmall)
                                     Text(doc.name, style = MaterialTheme.typography.titleMedium)
-                                    Text(doc.text.take(1400), style = MaterialTheme.typography.bodyMedium)
+                                    Text(doc.text, style = MaterialTheme.typography.bodyMedium)
                                     Text("${doc.text.length} characters · saved on this phone", style = MaterialTheme.typography.bodySmall)
                                 }
                             }
@@ -282,7 +286,7 @@ private fun GazAiScreen(context: Context) {
                             Card(Modifier.fillMaxWidth(), shape = RoundedCornerShape(12.dp)) {
                                 Column(Modifier.background(if (isUser) Color(0xFFDCEBFA) else Color(0xFFE7EDEB)).padding(12.dp)) {
                                     Text(
-                                        when (line.role) { "user" -> "You"; "note" -> "Investigation note"; else -> "Gaz AI" },
+                                        when (line.role) { "user" -> "You"; "note" -> "Investigation note"; else -> "Truth Detective" },
                                         style = MaterialTheme.typography.labelMedium
                                     )
                                     Text(line.text, style = MaterialTheme.typography.bodyLarge)
@@ -308,6 +312,16 @@ private fun GazAiScreen(context: Context) {
                                         MarkdownText(answer, style = MaterialTheme.typography.bodyMedium)
                                         Text("This answer came from an external service and may be wrong.",
                                             style = MaterialTheme.typography.bodySmall)
+                                        var savedToEvidence by remember(answer) { mutableStateOf(false) }
+                                        TextButton(onClick = {
+                                            savedToEvidence = saveFreeAiAnswerToTruthBoard(
+                                                context,
+                                                lines.lastOrNull { it.role == "user" }?.text.orEmpty(),
+                                                answer
+                                            )
+                                        }, enabled = !savedToEvidence) {
+                                            Text(if (savedToEvidence) "Saved to Truth evidence" else "＋ Save answer to Truth evidence")
+                                        }
                                     }
                                 }
                             }
@@ -348,8 +362,8 @@ private fun GazAiScreen(context: Context) {
                     )
                 )
                 if (mode != "Library") {
-                    Text("Ask free AI sends only the question you type to an external service. Do not include private or sensitive information.",
-                        color = Color(0xFFFFD18A), style = MaterialTheme.typography.bodySmall)
+                    Text("Free AI sends only this question to an external service. Do not include private or sensitive information.",
+                        color = Color(0xFFFFD18A), style = MaterialTheme.typography.bodySmall.copy(fontSize = 10.sp, lineHeight = 13.sp))
                 }
                 // Keep the primary action visible in every tab, including Library.
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -403,7 +417,9 @@ private fun GazAiScreen(context: Context) {
                             else { lines.clear(); history.save(lines) }
                         }) { Text("Clear history", color = Color(0xFFB8C7D1)) }
                     }
-                }            }
+                }
+                }
+            }
         }
     }
 }

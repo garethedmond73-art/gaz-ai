@@ -2,6 +2,8 @@ name: Android APK
 
 on:
   push:
+    branches: [ "main", "merge/truth-detective-native" ]
+  pull_request:
     branches: [ "main" ]
   workflow_dispatch:
 
