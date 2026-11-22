@@ -111,7 +111,7 @@ private fun GazAiScreen(context: Context) {
     }
 
     // Follow streamed reply updates as well as newly added messages, so the
-    // newest text remains visible while Gaz AI is generating a response.
+    // newest text remains visible while Truth Detective is generating a response.
     LaunchedEffect(lines.size, lines.lastOrNull()?.text) {
         if (lines.isNotEmpty()) conversationListState.scrollToItem(lines.lastIndex)
     }
@@ -141,7 +141,7 @@ private fun GazAiScreen(context: Context) {
                     AlertDialog(
                         onDismissRequest = { ai.dismissSourcesPrompt() },
                         title = { Text("Save these sources to your library?") },
-                        text = { Text("Gaz AI used online search results for this answer. Would you like to keep the source titles, snippets and links in your on-device library for future investigations?") },
+                        text = { Text("Truth Detective used online search results for this answer. Would you like to keep the source titles, snippets and links in your on-device library for future investigations?") },
                         confirmButton = {
                             TextButton(onClick = {
                                 ai.saveOnlineSources()
@@ -171,7 +171,7 @@ private fun GazAiScreen(context: Context) {
                         }
                     )
                 }
-                Text("GAZ AI", style = MaterialTheme.typography.headlineSmall, color = Color.White, fontSize = 22.sp, lineHeight = 26.sp)
+                Text("TRUTH DETECTIVE", style = MaterialTheme.typography.headlineSmall, color = Color.White, fontSize = 22.sp, lineHeight = 26.sp)
                 Text("Your assistant. Your device. Your data.", color = Color(0xFFB8C7D1), fontSize = 12.sp)
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                     ModeButton("Chat", mode == "Chat", Modifier.weight(1f)) { mode = "Chat" }
@@ -207,9 +207,9 @@ private fun GazAiScreen(context: Context) {
                                 Text("Online web search", style = MaterialTheme.typography.titleSmall, fontSize = 14.sp)
                                 Text(
                                     if (aiState.onlineSearchEnabled)
-                                        "ON · Adds live Wikipedia results to Gaz AI's answer"
+                                        "ON · Adds live Wikipedia results to Truth Detective's answer"
                                     else
-                                        "OFF · Gaz AI uses its offline model and library only",
+                                        "OFF · Truth Detective uses its offline model and library only",
                                     style = MaterialTheme.typography.bodySmall.copy(fontSize = 11.sp, lineHeight = 14.sp)
                                 )
                             }
@@ -228,7 +228,7 @@ private fun GazAiScreen(context: Context) {
                     ) {
                         Text(when {
                             aiState.downloading -> "Downloading model… ${aiState.downloadProgress}%"
-                            aiState.loading -> "Restoring Gaz AI…"
+                            aiState.loading -> "Restoring Truth Detective…"
                             aiState.modelDownloaded -> "Retry loading offline AI"
                             else -> "Download offline AI"
                         })
@@ -253,7 +253,7 @@ private fun GazAiScreen(context: Context) {
                         items(lines.filter { it.role != "note" }) { line ->
                             Card(Modifier.fillMaxWidth(), shape = RoundedCornerShape(12.dp)) {
                                 Column(Modifier.background(Color(0xFFE7EDEB)).padding(12.dp)) {
-                                    Text(if (line.role == "user") "Your library question" else "Gaz AI", style = MaterialTheme.typography.labelMedium)
+                                    Text(if (line.role == "user") "Your library question" else "Truth Detective", style = MaterialTheme.typography.labelMedium)
                                     MarkdownText(line.text, style = MaterialTheme.typography.bodyLarge)
                                 }
                             }
@@ -328,7 +328,7 @@ private fun GazAiScreen(context: Context) {
                     value = draft, onValueChange = { draft = it }, modifier = Modifier.fillMaxWidth(),
                     label = { Text(
                         when (mode) {
-                            "Chat" -> "Message Gaz AI"
+                            "Chat" -> "Message Truth Detective"
                             "Truth Detective" -> "Ask an investigation question"
                             else -> "Ask your library a question"
                         }, color = Color(0xFFB8C7D1)
