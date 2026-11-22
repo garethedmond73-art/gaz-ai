@@ -18,7 +18,7 @@ The library is designed so additional packs and user-imported material can be ad
 - The starter retrieval is lightweight keyword matching, not yet semantic/vector search.
 - The initial library is a starter reference collection, not a complete encyclopaedia or a bundle of full scripture editions.
 - The Library screen currently browses built-in notes. Importing PDF/EPUB/TXT files and downloading additional packs is a later milestone.
-- Internet research is not yet implemented; the ordinary chat and starter library work offline once the model is downloaded.
+- Optional online research searches Wikipedia using its public MediaWiki API; it requires an internet connection but no API key or paid AI credits. The on-device Qwen model still writes the answer. Only the current question is sent to Wikipedia; chat history, investigation notes and imported library files are not uploaded. This is a focused encyclopedia search, not a general-purpose search engine.
 
 ## Build
 Open in Android Studio and allow Gradle to sync. GitHub Actions builds a debug APK on pushes to `main`.
