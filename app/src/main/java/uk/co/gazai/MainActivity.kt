@@ -179,6 +179,14 @@ private fun GazAiScreen(context: Context) {
                     verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     if (mode == "Library") {
+                        items(lines) { line ->
+                            Card(Modifier.fillMaxWidth(), shape = RoundedCornerShape(12.dp)) {
+                                Column(Modifier.background(Color(0xFFE7EDEB)).padding(12.dp)) {
+                                    Text(if (line.role == "user") "Your library question" else "Gaz AI", style = MaterialTheme.typography.labelMedium)
+                                    Text(line.text, style = MaterialTheme.typography.bodyLarge)
+                                }
+                            }
+                        }
                         items(StarterLibrary.entries) { entry ->
                             Card(Modifier.fillMaxWidth(), shape = RoundedCornerShape(12.dp)) {
                                 Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
@@ -222,7 +230,7 @@ private fun GazAiScreen(context: Context) {
                         when (mode) {
                             "Chat" -> "Message Gaz AI"
                             "Truth Detective" -> "Ask an investigation question"
-                            else -> "Library is read-only here"
+                            else -> "Ask your library a question"
                         }, color = Color(0xFFB8C7D1)
                     ) },
                     minLines = 1, maxLines = 3,
@@ -239,22 +247,24 @@ private fun GazAiScreen(context: Context) {
                         val message = draft.trim()
                         if (message.isNotEmpty()) {
                             lines.add(ChatLine("user", message))
-                            if (mode != "Library" && aiState.ready) {
+                            if (aiState.ready) {
                                 lines.add(ChatLine("assistant", "Thinking…"))
-                                ai.send(message)
-                            } else if (mode != "Library") {
-                                lines.add(ChatLine("assistant", "Your question is saved on this phone. Gaz AI is not ready yet; load or download the offline model above."))
+                                val notes = if (mode == "Truth Detective") {
+                                    lines.filter { it.role == "note" }.takeLast(10)
+                                        .joinToString("\n") { it.text }
+                                } else ""
+                                ai.send(message, notes)
                             }
                             history.save(lines)
                             draft = ""
                         }
                     }, modifier = Modifier.weight(1f),
-                        enabled = draft.isNotBlank() && !aiState.busy && mode != "Library") {
+                        enabled = draft.isNotBlank() && !aiState.busy && aiState.ready) {
                         Text(when {
                             aiState.busy -> "Thinking…"
                             mode == "Truth Detective" -> "Investigate"
-                            mode == "Chat" -> "Send"
-                            else -> "Unavailable"
+                            mode == "Library" -> "Ask library"
+                            else -> "Send"
                         })
                     }
                     if (mode == "Truth Detective") {
