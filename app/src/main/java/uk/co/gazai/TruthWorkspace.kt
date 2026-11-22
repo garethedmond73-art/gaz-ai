@@ -30,10 +30,16 @@ private class TruthBoard(context: Context) {
     private val prefs = context.getSharedPreferences("gaz_truth_board", Context.MODE_PRIVATE)
     fun loadEvidence(): List<TruthEvidence> = runCatching {
         val a = JSONArray(prefs.getString("evidence", "[]"))
-        (0 until a.length()).map { i -> a.getJSONObject(i).let {
-            TruthEvidence(it.getString("id"), it.getString("group"), it.getString("claim"),
+        val seenIds = mutableSetOf<String>()
+        val records = (0 until a.length()).map { i -> a.getJSONObject(i).let {
+            val storedId = it.getString("id")
+            val uniqueId = if (seenIds.add(storedId)) storedId else UUID.randomUUID().toString().also { seenIds.add(it) }
+            TruthEvidence(uniqueId, it.getString("group"), it.getString("claim"),
                 it.optString("source"), it.optString("support"), it.optString("challenge"))
         } }
+        // Repair old boards with repeated IDs so two separate records can be connected.
+        if (records.map { it.id }.toSet().size != a.length()) save(records, loadLinks())
+        records
     }.getOrDefault(emptyList())
     fun loadLinks(): List<TruthLink> = runCatching {
         val a = JSONArray(prefs.getString("links", "[]"))
@@ -235,7 +241,7 @@ internal fun TruthWorkspace(context: Context, ai: LocalAiViewModel, aiState: Loc
             else -> {
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                     Text("Connection map · ${links.size}", color = Color.White, style = MaterialTheme.typography.titleSmall)
-                    TextButton(onClick = { showAddLink = true; fromId = evidence.firstOrNull()?.id ?: ""; toId = evidence.getOrNull(1)?.id ?: "" }) { Text("＋ Connect") }
+                    TextButton(onClick = { fromId = evidence.firstOrNull()?.id ?: ""; toId = evidence.firstOrNull { it.id != fromId }?.id ?: ""; connectionReason = ""; showAddLink = true }) { Text("＋ Connect") }
                 }
                 LazyColumn(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     items(links, key = { it.id }) { link ->
@@ -295,17 +301,21 @@ internal fun TruthWorkspace(context: Context, ai: LocalAiViewModel, aiState: Loc
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             Text("Choose two different records. The connection is a research hypothesis.", style = MaterialTheme.typography.bodySmall)
-            evidence.forEach { item ->
+            evidence.forEachIndexed { index, item ->
                 Row {
                     RadioButton(selected = fromId == item.id, onClick = { fromId = item.id })
-                    Text("A · ${item.claim.take(75)}", modifier = Modifier.padding(top = 12.dp), fontSize = 12.sp)
+                    Text("A · ${index + 1}. ${item.claim.take(65)}", modifier = Modifier.padding(top = 12.dp), fontSize = 12.sp)
                 }
             }
-            evidence.forEach { item ->
+            HorizontalDivider()
+            evidence.forEachIndexed { index, item ->
                 Row {
                     RadioButton(selected = toId == item.id, onClick = { toId = item.id })
-                    Text("B · ${item.claim.take(75)}", modifier = Modifier.padding(top = 12.dp), fontSize = 12.sp)
+                    Text("B · ${index + 1}. ${item.claim.take(65)}", modifier = Modifier.padding(top = 12.dp), fontSize = 12.sp)
                 }
+            }
+            if (fromId.isNotBlank() && fromId == toId) {
+                Text("Choose a different record for A and B.", color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
             }
             OutlinedTextField(value = connectionReason, onValueChange = { connectionReason = it }, label = { Text("Why might they connect?") })
         } },
