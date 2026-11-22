@@ -88,9 +88,41 @@ jobs:
           script: |
             set -e
             mkdir -p test-results
+            # Wait until Android reports a fully booted system and package manager.
             adb wait-for-device
+            for attempt in $(seq 1 60); do
+              booted="$(adb shell getprop sys.boot_completed 2>/dev/null | tr -d '\r')"
+              if [ "$booted" = "1" ]; then
+                break
+              fi
+              sleep 2
+            done
+            if [ "$booted" != "1" ]; then
+              echo "Emulator did not finish booting; collecting diagnostics."
+              adb shell getprop > test-results/emulator-getprop.txt || true
+              adb logcat -d -t 5000 > test-results/emulator-boot-logcat.txt || true
+              exit 1
+            fi
             adb logcat -c
-            adb install -r app/build/outputs/apk/debug/app-debug.apk
+
+            # Non-streaming install avoids the adb package-service pipe failure
+            # seen on the first attempt. Reconnect and retry transient emulator errors.
+            install_ok=0
+            for attempt in 1 2 3; do
+              echo "APK installation attempt $attempt of 3"
+              adb install --no-streaming -r app/build/outputs/apk/debug/app-debug.apk && install_ok=1 && break
+              echo "Install attempt $attempt failed; reconnecting to emulator."
+              adb reconnect device || true
+              adb wait-for-device
+              sleep 8
+              adb shell getprop sys.boot_completed || true
+            done
+            if [ "$install_ok" -ne 1 ]; then
+              adb shell dumpsys package > test-results/package-manager-diagnostics.txt || true
+              adb logcat -d -t 12000 > test-results/install-failure-logcat.txt || true
+              exit 1
+            fi
+
             adb shell am force-stop uk.co.gazai
             adb shell monkey -p uk.co.gazai -c android.intent.category.LAUNCHER 1
             sleep 25
