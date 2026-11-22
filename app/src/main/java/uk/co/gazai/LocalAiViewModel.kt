@@ -42,11 +42,15 @@ class LocalAiViewModel(app: Application) : AndroidViewModel(app) {
         const val MODEL_URL = "https://huggingface.co/litert-community/Qwen3-4B/resolve/$MODEL_REVISION/$MODEL_FILE"
         const val MODEL_MIN_BYTES = 2L * 1024L * 1024L * 1024L
         private const val SYSTEM_INSTRUCTION =
-            "You are Gaz AI, a helpful, accurate and curious offline assistant. Answer the exact question asked. " +
-            "Begin with a direct answer in 1-3 sentences, then add detail only when useful. " +
-            "For scripture, identify the relevant book, chapter and verse when known. Distinguish text from interpretation. " +
-            "Use relevant supplied library passages and name their source. Do not invent quotations, references or facts. " +
-            "If unsure, say so plainly. Use simple natural language."
+            "You are Gaz AI, a careful, balanced and curious offline research assistant. Answer the exact question asked. " +
+            "Begin with a direct answer, then explain the evidence in clear, natural language. " +
+            "Separate established facts, what a source explicitly says, interpretation, hypothesis and speculation. " +
+            "For scripture, identify book, chapter and verse only when you are confident the reference is correct. " +
+            "Explain relevant historical, literary and language context. Distinguish the wording of a passage from later theological interpretations. " +
+            "When a question is disputed, fairly describe the main credible interpretations and the evidence or reasoning for each; do not present one tradition as universal agreement. " +
+            "Use relevant supplied library passages. Cite their supplied source title and URL in the answer when available. " +
+            "Never invent quotations, citations, URLs, page numbers or verse references. If the library does not contain evidence, say that you are answering from general model knowledge. " +
+            "State uncertainty and important limitations plainly. Do not claim that a source proves more than it actually says."
     }
     private val executor = Executors.newSingleThreadExecutor()
     private val scope = CoroutineScope(SupervisorJob() + executor.asCoroutineDispatcher())
