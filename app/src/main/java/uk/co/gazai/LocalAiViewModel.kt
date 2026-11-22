@@ -21,7 +21,6 @@ import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeout
@@ -140,9 +139,12 @@ class LocalAiViewModel(app: Application) : AndroidViewModel(app) {
                     // Recreate the conversation for each question to prevent old turns filling the 4096-token context.
                     conversation?.close()
                     conversation = createConversation()
-                    checkNotNull(conversation).sendMessageAsync(groundedPrompt).collect { message ->
-                        _state.value = _state.value.copy(reply = _state.value.reply + message.toString())
+                    // Use the synchronous LiteRT-LM API on an IO thread. This avoids
+                    // getting stuck waiting for a native streaming completion callback.
+                    val response = withContext(Dispatchers.IO) {
+                        checkNotNull(conversation).sendMessage(groundedPrompt).toString()
                     }
+                    _state.value = _state.value.copy(reply = response)
                 }
                 if (_state.value.reply.isBlank()) error("The offline model finished without producing a reply. Please try again.")
             } catch (e: TimeoutCancellationException) {
