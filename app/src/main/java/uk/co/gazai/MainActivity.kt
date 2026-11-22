@@ -177,6 +177,9 @@ private fun GazAiScreen(context: Context) {
                     ModeButton("Truth", mode == "Truth Detective", Modifier.weight(1f)) { mode = "Truth Detective" }
                     ModeButton("Library", mode == "Library", Modifier.weight(1f)) { mode = "Library" }
                 }
+                if (mode == "Truth Detective") {
+                    TruthWorkspace(context, ai, aiState)
+                } else {
                 Card(Modifier.fillMaxWidth(), shape = RoundedCornerShape(14.dp)) {
                     Column(Modifier.padding(10.dp)) {
                         Text(when (mode) { "Chat" -> "Offline chat"; "Library" -> "Offline knowledge library"; else -> "Investigation workspace" },
@@ -394,7 +397,9 @@ private fun GazAiScreen(context: Context) {
                             else { lines.clear(); history.save(lines) }
                         }) { Text("Clear history", color = Color(0xFFB8C7D1)) }
                     }
-                }            }
+                }
+                }
+            }
         }
     }
 }
