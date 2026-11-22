@@ -87,11 +87,40 @@ internal fun TruthWorkspace(context: Context, ai: LocalAiViewModel, aiState: Loc
     LaunchedEffect(aiState.reply, aiState.busy) {
         if (pendingQuestion.isNotBlank() && !aiState.busy && aiState.reply.isNotBlank() &&
             aiState.reply != "Thinking…" && aiState.reply != lastSavedReply) {
-            val record = TruthEvidence(UUID.randomUUID().toString(), "Human experience",
-                "AI investigation: ${pendingQuestion.take(180)}",
-                "Truth Detective on-device model" + if (aiState.onlineSearchEnabled) " with optional web context" else " · offline",
-                aiState.reply, "AI-generated research is provisional. Verify original sources and seek counter-evidence.")
-            evidence.add(0, record)
+            // Extract distinct findings from the investigation answer for the evidence ledger.
+            val extracted = runCatching {
+                val raw = aiState.reply.substringAfter("LEDGER_JSON:", "")
+                val first = raw.indexOf('[')
+                val last = raw.lastIndexOf(']')
+                require(first >= 0 && last > first) { "No structured ledger items" }
+                val array = JSONArray(raw.substring(first, last + 1))
+                (0 until array.length()).mapNotNull { index ->
+                    val item = array.optJSONObject(index) ?: return@mapNotNull null
+                    val claimText = item.optString("claim").trim()
+                    if (claimText.isBlank()) return@mapNotNull null
+                    val requestedGroup = item.optString("group").trim()
+                    val safeGroup = witnessGroups.firstOrNull { it.equals(requestedGroup, true) }
+                        ?: "Human experience"
+                    TruthEvidence(
+                        UUID.randomUUID().toString(), safeGroup, claimText.take(500),
+                        item.optString("source").take(500),
+                        item.optString("support").take(1200),
+                        item.optString("challenge").ifBlank {
+                            "No counter-evidence identified in this answer; further research needed."
+                        }.take(1200)
+                    )
+                }.take(8)
+            }.getOrDefault(emptyList())
+
+            if (extracted.isNotEmpty()) {
+                extracted.forEach { record -> evidence.add(0, record) }
+            } else {
+                // Keep a safe fallback if the model does not return valid structured records.
+                evidence.add(0, TruthEvidence(UUID.randomUUID().toString(), "Human experience",
+                    "AI investigation: ${pendingQuestion.take(180)}",
+                    "Truth Detective on-device model" + if (aiState.onlineSearchEnabled) " with optional web context" else " · offline",
+                    aiState.reply, "AI-generated research is provisional. Verify original sources and seek counter-evidence."))
+            }
             board.save(evidence, links)
             lastSavedReply = aiState.reply
             pendingQuestion = ""
@@ -163,7 +192,7 @@ internal fun TruthWorkspace(context: Context, ai: LocalAiViewModel, aiState: Loc
                         if (q.isNotBlank() && aiState.ready && !aiState.busy) {
                             pendingQuestion = q
                             lastSavedReply = aiState.reply
-                            ai.send("Investigate this question carefully. Separate established evidence, interpretation and speculation. Include the strongest counter-evidence, what remains unknown, and sources only when available. Treat all saved board material as provisional context.\n\nQUESTION: $q", contextNotes, aiState.onlineSearchEnabled)
+                            ai.send("Investigate this question carefully. First give a clear, readable answer. Separate established evidence, interpretation and speculation. Include the strongest counter-evidence, what remains unknown, and sources only when available. Do not invent sources or facts. Treat all saved board material as provisional context. At the very end, append a section beginning exactly with LEDGER_JSON: followed by a valid JSON array of 3 to 8 distinct evidence records extracted only from the answer. Each object must have these string fields: group (one of Scripture, Science, Philosophy, Human experience, Symbols & language patterns), claim (one concise standalone finding), source (specific source title, reference or URL if actually available, otherwise empty string), support (what in the answer supports this finding), challenge (counter-evidence or an honest statement that none was identified). Do not use markdown fences around the JSON. Do not create duplicate or trivial records.\\n\\nQUESTION: $q", contextNotes, aiState.onlineSearchEnabled)
                         }
                     }, enabled = question.isNotBlank() && aiState.ready && !aiState.busy,
                         modifier = Modifier.weight(1f)) { Text(if (aiState.busy) "Investigating…" else "Investigate") }
