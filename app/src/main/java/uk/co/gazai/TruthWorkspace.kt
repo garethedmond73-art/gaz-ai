@@ -59,6 +59,26 @@ private class TruthBoard(context: Context) {
     }
 }
 
+
+internal fun saveFreeAiAnswerToTruthBoard(context: Context, question: String, answer: String): Boolean {
+    val cleanAnswer = answer.trim()
+    if (cleanAnswer.isBlank()) return false
+    val board = TruthBoard(context)
+    val evidence = board.loadEvidence().toMutableList()
+    if (evidence.any { it.source == "Free AI second opinion" && it.support.trim() == cleanAnswer }) return false
+    val cleanQuestion = question.trim().ifBlank { "Free AI second opinion" }
+    evidence.add(0, TruthEvidence(
+        UUID.randomUUID().toString(),
+        "Human experience",
+        "Free AI: ${cleanQuestion.take(180)}",
+        "Free AI second opinion",
+        cleanAnswer.take(12000),
+        "AI-generated answer; treat as a research lead, not verified evidence. Check original sources and record counter-evidence."
+    ))
+    board.save(evidence, board.loadLinks())
+    return true
+}
+
 private val witnessGroups = listOf(
     "Scripture", "Science", "Philosophy", "Human experience", "Symbols & language patterns"
 )
@@ -304,14 +324,20 @@ internal fun TruthWorkspace(context: Context, ai: LocalAiViewModel, aiState: Loc
             Text("Choose two different records. The connection is a research hypothesis.", style = MaterialTheme.typography.bodySmall)
             evidence.forEachIndexed { index, item ->
                 Row {
-                    RadioButton(selected = fromId == item.id, onClick = { fromId = item.id })
+                    RadioButton(selected = fromId == item.id, onClick = {
+                        fromId = item.id
+                        if (toId == item.id) toId = evidence.firstOrNull { it.id != item.id }?.id ?: ""
+                    })
                     Text("A · ${index + 1}. ${item.claim.take(65)}", modifier = Modifier.padding(top = 12.dp), fontSize = 12.sp)
                 }
             }
             HorizontalDivider()
             evidence.forEachIndexed { index, item ->
                 Row {
-                    RadioButton(selected = toId == item.id, onClick = { toId = item.id })
+                    RadioButton(selected = toId == item.id, onClick = {
+                        toId = item.id
+                        if (fromId == item.id) fromId = evidence.firstOrNull { it.id != item.id }?.id ?: ""
+                    })
                     Text("B · ${index + 1}. ${item.claim.take(65)}", modifier = Modifier.padding(top = 12.dp), fontSize = 12.sp)
                 }
             }
@@ -325,7 +351,10 @@ internal fun TruthWorkspace(context: Context, ai: LocalAiViewModel, aiState: Loc
                 links.add(TruthLink(UUID.randomUUID().toString(),fromId,toId,connectionReason.trim()))
                 board.save(evidence,links); connectionReason=""; showAddLink=false
             }
-        }, enabled = evidence.size > 1 && fromId != toId) { Text("Save connection") } },
+        }, enabled = evidence.size > 1 && fromId.isNotBlank() && toId.isNotBlank() &&
+            fromId != toId && connectionReason.isNotBlank() &&
+            evidence.any { it.id == fromId } && evidence.any { it.id == toId } &&
+            links.none { setOf(it.from, it.to) == setOf(fromId, toId) }) { Text("Save connection") } },
         dismissButton = { TextButton(onClick = { showAddLink=false }) { Text("Cancel") } }
     )
 }
