@@ -190,10 +190,29 @@ internal fun EndlessInvestigation(
             value = draft,
             onValueChange = { draft = it },
             modifier = Modifier.fillMaxWidth(),
-            label = { Text("Start a new investigation") },
-            placeholder = { Text("What do you want to understand?") },
+            label = { Text("Start a new investigation", color = Color(0xFFB99BFF)) },
+            placeholder = { Text("What do you want to understand?", color = Color(0xFFB8C7D1)) },
             minLines = 2,
-            maxLines = 3
+            maxLines = 3,
+            textStyle = MaterialTheme.typography.bodyLarge.copy(
+                color = Color.White,
+                fontSize = 19.sp
+            ),
+            colors = androidx.compose.material3.OutlinedTextFieldDefaults.colors(
+                focusedTextColor = Color.White,
+                unfocusedTextColor = Color.White,
+                disabledTextColor = Color(0xFFE0E7EF),
+                cursorColor = Color(0xFFFFD166),
+                focusedBorderColor = Color(0xFFB99BFF),
+                unfocusedBorderColor = Color(0xFF9B7AE8),
+                focusedLabelColor = Color(0xFFB99BFF),
+                unfocusedLabelColor = Color(0xFFB8C7D1),
+                focusedPlaceholderColor = Color(0xFFB8C7D1),
+                unfocusedPlaceholderColor = Color(0xFFB8C7D1),
+                focusedContainerColor = Color(0xFF202D39),
+                unfocusedContainerColor = Color(0xFF202D39),
+                disabledContainerColor = Color(0xFF202D39)
+            )
         )
         Button(
             onClick = {
