@@ -2,7 +2,7 @@ name: Truth Detective Android CI
 
 on:
   push:
-    branches: [ "main", "merge/truth-detective-native" ]
+    branches: [ "main", "merge/truth-detective-native", "test/endless-investigation-automated-tests" ]
   pull_request:
     branches: [ "main" ]
   workflow_dispatch:
@@ -94,7 +94,8 @@ jobs:
             adb shell am force-stop uk.co.gazai &&
             adb shell monkey -p uk.co.gazai -c android.intent.category.LAUNCHER 1 &&
             sleep 25 &&
-            python3 emulator-smoke-test.py
+            python3 emulator-smoke-test.py &&
+            gradle connectedDebugAndroidTest
 
       - name: Upload APK and emulator test report
         if: always()
