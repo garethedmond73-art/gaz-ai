@@ -35,7 +35,8 @@ data class LocalAiState(
     val modelDownloaded: Boolean = false, val downloading: Boolean = false,
     val downloadProgress: Int = 0, val loading: Boolean = false, val ready: Boolean = false,
     val busy: Boolean = false, val reply: String = "", val error: String? = null,
-    val onlineSearchEnabled: Boolean = false
+    val onlineSearchEnabled: Boolean = false,
+    val strongerBusy: Boolean = false, val strongerReply: String = "", val strongerError: String? = null
 )
 
 class LocalAiViewModel(app: Application) : AndroidViewModel(app) {
@@ -165,6 +166,56 @@ class LocalAiViewModel(app: Application) : AndroidViewModel(app) {
             return "LIVE WEB SEARCH RESULTS (Wikipedia search; retrieved just now). Treat snippets as leads, not proof. Verify claims and cite only these supplied links:\n" + sources.joinToString("\n\n")
         } finally { connection.disconnect() }
     }
+    // Optional anonymous stronger-model request. Only the explicitly selected question is sent;
+    // no chat history, investigation notes or library contents are included.
+    fun askStrongerAi(question: String) {
+        val prompt = question.trim().take(4000)
+        if (prompt.isBlank() || _state.value.strongerBusy) return
+        scope.launch {
+            _state.value = _state.value.copy(strongerBusy = true, strongerReply = "", strongerError = null)
+            try {
+                val answer = withContext(Dispatchers.IO) {
+                    val url = URL("https://ai-gateway.kilo.ai/api/v1/chat/completions")
+                    val connection = (url.openConnection() as HttpURLConnection).apply {
+                        requestMethod = "POST"
+                        connectTimeout = 20000
+                        readTimeout = 90000
+                        doOutput = true
+                        setRequestProperty("Content-Type", "application/json")
+                        setRequestProperty("Accept", "application/json")
+                    }
+                    try {
+                        val payload = JSONObject()
+                            .put("model", "kilo-auto/free")
+                            .put("messages", org.json.JSONArray().put(
+                                JSONObject().put("role", "user").put("content",
+                                    "Answer this question carefully and explain uncertainty. Do not assume facts not provided.\\n\\n" + prompt)
+                            ))
+                            .put("temperature", 0.4)
+                            .put("max_tokens", 700)
+                        connection.outputStream.use { it.write(payload.toString().toByteArray(Charsets.UTF_8)) }
+                        val code = connection.responseCode
+                        val stream = if (code in 200..299) connection.inputStream else connection.errorStream
+                        val body = stream?.bufferedReader()?.use { it.readText() }.orEmpty()
+                        if (code !in 200..299) throw IllegalStateException(
+                            if (code == 429) "The free AI service is busy or its shared limit has been reached. Try again later."
+                            else "The free AI service returned error $code. Your offline Gaz AI is still available."
+                        )
+                        val json = JSONObject(body)
+                        json.optJSONArray("choices")?.optJSONObject(0)?.optJSONObject("message")
+                            ?.optString("content")?.takeIf { it.isNotBlank() }
+                            ?: throw IllegalStateException("The free AI service returned an empty answer.")
+                    } finally { connection.disconnect() }
+                }
+                _state.value = _state.value.copy(strongerReply = answer)
+            } catch (e: Exception) {
+                _state.value = _state.value.copy(strongerError = e.message ?: "The free AI service is unavailable.")
+            } finally {
+                _state.value = _state.value.copy(strongerBusy = false)
+            }
+        }
+    }
+
     fun send(text: String, investigationNotes: String = "", onlineSearchEnabled: Boolean = _state.value.onlineSearchEnabled) {
         val prompt = text.trim()
         if (prompt.isEmpty() || !_state.value.ready || _state.value.busy) return
