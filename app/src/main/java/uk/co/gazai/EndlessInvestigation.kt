@@ -36,14 +36,14 @@ import org.json.JSONArray
 import org.json.JSONObject
 import java.util.UUID
 
-private data class InvestigationQuestion(
+internal data class InvestigationQuestion(
     val id: String,
     val parentId: String?,
     val question: String,
     val answer: String = ""
 )
 
-private class InvestigationTreeStore(context: Context) {
+internal class InvestigationTreeStore(context: Context) {
     private val prefs = context.getSharedPreferences("gaz_endless_investigation", Context.MODE_PRIVATE)
 
     fun load(): List<InvestigationQuestion> = runCatching {
@@ -116,19 +116,9 @@ internal fun EndlessInvestigation(
                 }
             }
             "branches" -> {
-                val marker = "NEXT_QUESTIONS_JSON:"
-                val raw = aiState.reply.substringAfter(marker, "")
-                val first = raw.indexOf('[')
-                val last = raw.lastIndexOf(']')
-                val questions = runCatching {
-                    require(first >= 0 && last > first) { "The AI did not return a question list." }
-                    val array = JSONArray(raw.substring(first, last + 1))
-                    (0 until array.length()).mapNotNull { i ->
-                        array.optString(i).trim().takeIf { it.length > 8 }
-                    }.distinct().take(4)
-                }.getOrDefault(emptyList())
-                val existing = nodes.filter { it.parentId == targetId }.map { it.question.lowercase() }.toSet()
-                val additions = questions.filter { it.lowercase() !in existing }.map {
+                val existing = nodes.filter { it.parentId == targetId }.map { it.question }
+                val questions = parseNewFollowUpQuestions(aiState.reply, existing)
+                val additions = questions.map {
                     InvestigationQuestion(UUID.randomUUID().toString(), targetId, it)
                 }
                 nodes.addAll(additions)
@@ -200,10 +190,29 @@ internal fun EndlessInvestigation(
             value = draft,
             onValueChange = { draft = it },
             modifier = Modifier.fillMaxWidth(),
-            label = { Text("Start a new investigation") },
-            placeholder = { Text("What do you want to understand?") },
+            label = { Text("Start a new investigation", color = Color(0xFFB99BFF)) },
+            placeholder = { Text("What do you want to understand?", color = Color(0xFFB8C7D1)) },
             minLines = 2,
-            maxLines = 3
+            maxLines = 3,
+            textStyle = MaterialTheme.typography.bodyLarge.copy(
+                color = Color.White,
+                fontSize = 19.sp
+            ),
+            colors = androidx.compose.material3.OutlinedTextFieldDefaults.colors(
+                focusedTextColor = Color.White,
+                unfocusedTextColor = Color.White,
+                disabledTextColor = Color(0xFFE0E7EF),
+                cursorColor = Color(0xFFFFD166),
+                focusedBorderColor = Color(0xFFB99BFF),
+                unfocusedBorderColor = Color(0xFF9B7AE8),
+                focusedLabelColor = Color(0xFFB99BFF),
+                unfocusedLabelColor = Color(0xFFB8C7D1),
+                focusedPlaceholderColor = Color(0xFFB8C7D1),
+                unfocusedPlaceholderColor = Color(0xFFB8C7D1),
+                focusedContainerColor = Color(0xFF202D39),
+                unfocusedContainerColor = Color(0xFF202D39),
+                disabledContainerColor = Color(0xFF202D39)
+            )
         )
         Button(
             onClick = {
