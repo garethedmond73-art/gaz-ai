@@ -29,6 +29,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Surface
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.getValue
@@ -169,6 +170,29 @@ private fun GazAiScreen(context: Context) {
                         )
                     }
                 }
+                if (mode != "Library") {
+                    Card(Modifier.fillMaxWidth(), shape = RoundedCornerShape(12.dp)) {
+                        Row(
+                            Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 6.dp),
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            Column(Modifier.weight(1f).padding(end = 8.dp)) {
+                                Text("Online web search", style = MaterialTheme.typography.titleSmall)
+                                Text(
+                                    if (aiState.onlineSearchEnabled)
+                                        "ON · Adds live Wikipedia results to Gaz AI's answer"
+                                    else
+                                        "OFF · Gaz AI uses its offline model and library only",
+                                    style = MaterialTheme.typography.bodySmall
+                                )
+                            }
+                            Switch(
+                                checked = aiState.onlineSearchEnabled,
+                                onCheckedChange = { ai.setOnlineSearchEnabled(it) }
+                            )
+                        }
+                    }
+                }
                 if (mode != "Library" && !aiState.ready) {
                     Button(
                         onClick = { if (aiState.modelDownloaded) ai.loadModel() else ai.downloadModel() },
@@ -299,7 +323,7 @@ private fun GazAiScreen(context: Context) {
                                     lines.filter { it.role == "note" }.takeLast(10)
                                         .joinToString("\n") { it.text }
                                 } else ""
-                                ai.send(message, notes)
+                                ai.send(message, notes, aiState.onlineSearchEnabled)
                             }
                             history.save(lines)
                             draft = ""
