@@ -87,13 +87,24 @@ internal fun EndlessInvestigation(
     var draft by remember { mutableStateOf("") }
     var pendingAction by remember { mutableStateOf("") }
     var pendingNodeId by remember { mutableStateOf("") }
+    var pendingSawBusy by remember { mutableStateOf(false) }
     var status by remember { mutableStateOf("") }
     val selected = nodes.firstOrNull { it.id == selectedId }
 
     fun persist() = store.save(nodes)
 
-    LaunchedEffect(aiState.reply, aiState.busy, pendingAction) {
-        if (pendingAction.isBlank() || aiState.busy || aiState.reply.isBlank() || aiState.reply == "Thinking…") return@LaunchedEffect
+    LaunchedEffect(aiState.reply, aiState.busy, pendingAction, aiState.error) {
+        if (pendingAction.isBlank()) return@LaunchedEffect
+        if (aiState.busy) { pendingSawBusy = true; return@LaunchedEffect }
+        if (!pendingSawBusy) return@LaunchedEffect
+        if (aiState.error != null && aiState.reply.isBlank()) {
+            status = aiState.error
+            pendingAction = ""
+            pendingNodeId = ""
+            pendingSawBusy = false
+            return@LaunchedEffect
+        }
+        if (aiState.reply.isBlank() || aiState.reply == "Thinking…") return@LaunchedEffect
         val targetId = pendingNodeId
         when (pendingAction) {
             "answer" -> {
@@ -131,12 +142,14 @@ internal fun EndlessInvestigation(
         }
         pendingAction = ""
         pendingNodeId = ""
+        pendingSawBusy = false
     }
 
     fun investigate(node: InvestigationQuestion) {
         if (!aiState.ready || aiState.busy) return
         selectedId = node.id
         pendingNodeId = node.id
+        pendingSawBusy = false
         pendingAction = "answer"
         status = "Investigating this branch…"
         ai.send(
@@ -157,6 +170,7 @@ internal fun EndlessInvestigation(
         if (!aiState.ready || aiState.busy || node.answer.isBlank()) return
         selectedId = node.id
         pendingNodeId = node.id
+        pendingSawBusy = false
         pendingAction = "branches"
         status = "Finding useful next questions…"
         ai.send(
@@ -260,6 +274,12 @@ internal fun EndlessInvestigation(
                         Text(node.answer, style = MaterialTheme.typography.bodySmall)
                     } else {
                         Text("This branch has not been investigated yet.", style = MaterialTheme.typography.bodySmall)
+                    }
+                    if (node.answer.isNotBlank()) {
+                        TextButton(onClick = {
+                            val saved = saveEndlessAnswerToTruthBoard(context, node.question, node.answer)
+                            status = if (saved) "Answer saved to the Evidence ledger." else "This answer is already in the Evidence ledger."
+                        }) { Text("＋ Save answer to evidence") }
                     }
                     Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                         Button(
