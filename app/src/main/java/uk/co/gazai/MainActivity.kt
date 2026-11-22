@@ -20,6 +20,7 @@ import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
@@ -78,6 +79,7 @@ private fun GazAiScreen(context: Context) {
     var mode by remember { mutableStateOf("Chat") }
     var draft by remember { mutableStateOf("") }
     var libraryStatus by remember { mutableStateOf("") }
+    val conversationListState = rememberLazyListState()
     val ai = viewModel<LocalAiViewModel>()
     val aiState by ai.state.collectAsStateWithLifecycle()
 
@@ -96,6 +98,10 @@ private fun GazAiScreen(context: Context) {
                 libraryStatus = e.message ?: "Could not import this file."
             }
         }
+    }
+
+    LaunchedEffect(lines.size) {
+        if (lines.isNotEmpty()) conversationListState.animateScrollToItem(lines.lastIndex)
     }
 
     LaunchedEffect(aiState.reply, aiState.busy, aiState.error) {
@@ -131,18 +137,18 @@ private fun GazAiScreen(context: Context) {
                         Text(when (mode) { "Chat" -> "Offline chat"; "Library" -> "Offline knowledge library"; else -> "Investigation workspace" },
                             style = MaterialTheme.typography.titleSmall)
                         Text(
-                            if (mode == "Chat") when {
-                                aiState.ready -> "Your offline AI is ready. Messages are answered on this phone."
-                                aiState.loading -> "Loading the offline AI model. This can take a little while."
+                            if (mode != "Library") when {
+                                aiState.ready -> "Your offline AI is ready. Chat and investigations use the same on-device model and library."
+                                aiState.loading -> "Restoring the offline AI model. This can take a little while."
                                 aiState.downloading -> "Downloading the offline model: ${aiState.downloadProgress}%"
-                                aiState.modelDownloaded -> "The model is downloaded and ready to load."
-                                else -> "Your conversation is saved on this phone. Download the small local AI model to enable offline answers."
+                                aiState.modelDownloaded -> "The model is downloaded and will load automatically."
+                                else -> "Download the offline AI model to enable private, on-device answers."
                             } else "Your notes and imported documents stay on this phone.",
                             style = MaterialTheme.typography.bodySmall
                         )
                     }
                 }
-                if (mode == "Chat" && !aiState.ready) {
+                if (mode != "Library" && !aiState.ready) {
                     Button(
                         onClick = { if (aiState.modelDownloaded) ai.loadModel() else ai.downloadModel() },
                         enabled = !aiState.downloading && !aiState.loading,
@@ -150,9 +156,9 @@ private fun GazAiScreen(context: Context) {
                     ) {
                         Text(when {
                             aiState.downloading -> "Downloading model… ${aiState.downloadProgress}%"
-                            aiState.loading -> "Loading Gaz AI…"
-                            aiState.modelDownloaded -> "Load offline AI"
-                            else -> "Download offline AI (328 MiB)"
+                            aiState.loading -> "Restoring Gaz AI…"
+                            aiState.modelDownloaded -> "Retry loading offline AI"
+                            else -> "Download offline AI"
                         })
                     }
                 }
@@ -165,7 +171,11 @@ private fun GazAiScreen(context: Context) {
                 }
                 aiState.error?.let { Text(it, color = Color(0xFFFFB4AB), style = MaterialTheme.typography.bodySmall) }
                 Text(if (mode == "Library") "Your library" else "Conversation", color = Color.White, style = MaterialTheme.typography.titleSmall)
-                LazyColumn(Modifier.weight(1f).fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                LazyColumn(
+                    state = conversationListState,
+                    modifier = Modifier.weight(1f).fillMaxWidth(),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
                     if (mode == "Library") {
                         items(StarterLibrary.entries) { entry ->
                             Card(Modifier.fillMaxWidth(), shape = RoundedCornerShape(12.dp)) {
@@ -194,7 +204,10 @@ private fun GazAiScreen(context: Context) {
                             val isUser = line.role == "user"
                             Card(Modifier.fillMaxWidth(), shape = RoundedCornerShape(12.dp)) {
                                 Column(Modifier.background(if (isUser) Color(0xFFDCEBFA) else Color(0xFFE7EDEB)).padding(12.dp)) {
-                                    Text(if (isUser) "You" else "Gaz AI", style = MaterialTheme.typography.labelMedium)
+                                    Text(
+                                        when (line.role) { "user" -> "You"; "note" -> "Investigation note"; else -> "Gaz AI" },
+                                        style = MaterialTheme.typography.labelMedium
+                                    )
                                     Text(line.text, style = MaterialTheme.typography.bodyLarge)
                                 }
                             }
@@ -203,7 +216,13 @@ private fun GazAiScreen(context: Context) {
                 }
                 OutlinedTextField(
                     value = draft, onValueChange = { draft = it }, modifier = Modifier.fillMaxWidth(),
-                    label = { Text(if (mode == "Chat") "Message Gaz AI" else "Add an investigation note", color = Color(0xFFB8C7D1)) },
+                    label = { Text(
+                        when (mode) {
+                            "Chat" -> "Message Gaz AI"
+                            "Truth Detective" -> "Ask an investigation question"
+                            else -> "Library is read-only here"
+                        }, color = Color(0xFFB8C7D1)
+                    ) },
                     minLines = 1, maxLines = 3,
                     textStyle = MaterialTheme.typography.bodyLarge.copy(color = Color.White, fontSize = 18.sp),
                     colors = OutlinedTextFieldDefaults.colors(
@@ -218,19 +237,35 @@ private fun GazAiScreen(context: Context) {
                         val message = draft.trim()
                         if (message.isNotEmpty()) {
                             lines.add(ChatLine("user", message))
-                            if (mode == "Chat" && aiState.ready) {
-                                lines.add(ChatLine("assistant", ""))
+                            if (mode != "Library" && aiState.ready) {
+                                lines.add(ChatLine("assistant", "Thinking…"))
                                 ai.send(message)
-                            } else if (mode == "Chat") {
-                                lines.add(ChatLine("assistant", "Your message is saved on this phone. Load the offline AI model above to get an answer."))
-                            } else {
-                                lines.add(ChatLine("assistant", "Investigation note saved on this phone."))
+                            } else if (mode != "Library") {
+                                lines.add(ChatLine("assistant", "Your question is saved on this phone. Gaz AI is not ready yet; load or download the offline model above."))
                             }
                             history.save(lines)
                             draft = ""
                         }
-                    }, modifier = Modifier.weight(1f), enabled = draft.isNotBlank() && !aiState.busy) {
-                        Text(if (mode == "Chat" && aiState.busy) "Thinking…" else if (mode == "Chat") "Send" else "Save note")
+                    }, modifier = Modifier.weight(1f),
+                        enabled = draft.isNotBlank() && !aiState.busy && mode != "Library") {
+                        Text(when {
+                            aiState.busy -> "Thinking…"
+                            mode == "Truth Detective" -> "Investigate"
+                            mode == "Chat" -> "Send"
+                            else -> "Unavailable"
+                        })
+                    }
+                    if (mode == "Truth Detective") {
+                        TextButton(onClick = {
+                            val note = draft.trim()
+                            if (note.isNotEmpty()) {
+                                lines.add(ChatLine("note", "Investigation note: $note"))
+                                history.save(lines)
+                                draft = ""
+                            }
+                        }, enabled = draft.isNotBlank() && !aiState.busy) {
+                            Text("Save note", color = Color(0xFFB8C7D1))
+                        }
                     }
                     TextButton(onClick = { lines.clear(); history.save(lines) }) { Text("Clear history", color = Color(0xFFB8C7D1)) }
                 }
