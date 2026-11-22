@@ -65,6 +65,7 @@ internal fun EndlessInvestigation(context: Context, ai: LocalAiViewModel, aiStat
     var pendingQuestion by remember { mutableStateOf("") }
     var pendingNodeId by remember { mutableStateOf("") }
     var lastProcessedReply by remember { mutableStateOf("") }
+    var sawBusy by remember { mutableStateOf(false) }
     var showClear by remember { mutableStateOf(false) }
 
     val latest = steps.lastOrNull()
@@ -75,8 +76,11 @@ internal fun EndlessInvestigation(context: Context, ai: LocalAiViewModel, aiStat
 
     LaunchedEffect(aiState.reply, aiState.busy, pendingAction) {
         val reply = aiState.reply.trim()
-        if (pendingAction.isNotBlank() && !aiState.busy && reply.isNotBlank() &&
-            reply != "Thinking…" && reply != lastProcessedReply) {
+        if (pendingAction.isNotBlank()) {
+            if (aiState.busy) {
+                sawBusy = true
+            } else if (sawBusy && reply.isNotBlank() &&
+                reply != "Thinking…" && reply != lastProcessedReply) {
             val marker = "NEXT_QUESTION:"
             val nextQuestion = reply.substringAfter(marker, "").lineSequence()
                 .firstOrNull()?.trim()?.trim('"', '“', '”').orEmpty()
@@ -100,6 +104,13 @@ internal fun EndlessInvestigation(context: Context, ai: LocalAiViewModel, aiStat
             pendingAction = ""
             pendingQuestion = ""
             pendingNodeId = ""
+            sawBusy = false
+            } else if (sawBusy && aiState.error != null) {
+                pendingAction = ""
+                pendingQuestion = ""
+                pendingNodeId = ""
+                sawBusy = false
+            }
         }
     }
 
@@ -132,6 +143,7 @@ internal fun EndlessInvestigation(context: Context, ai: LocalAiViewModel, aiStat
                 if (q.isNotBlank() && aiState.ready && !aiState.busy) {
                     pendingAction = "investigate"
                     pendingQuestion = q
+                    sawBusy = false
                     lastProcessedReply = ""
                     ai.send(
                         "Investigate this question as the next step in an ongoing Truth Detective investigation. Answer clearly and concisely. Separate (1) established evidence with sources actually available, (2) interpretation, (3) speculation, and (4) strongest counterarguments and unknowns. Do not claim you have directly observed reality or evidence outside the information supplied to you. Do not invent citations. Treat previous findings as provisional and correct them if needed. End with exactly one useful, open NEXT_QUESTION: line that follows logically from the investigation. The next question must be a real question, not a conclusion.\n\nCURRENT QUESTION: $q",
@@ -177,6 +189,7 @@ internal fun EndlessInvestigation(context: Context, ai: LocalAiViewModel, aiStat
                             if (aiState.ready && !aiState.busy) {
                                 pendingAction = "challenge"
                                 pendingNodeId = latest.id
+                                sawBusy = false
                                 lastProcessedReply = ""
                                 ai.send(
                                     "Act as a rigorous but fair challenger. Examine the previous answer and identify its weakest assumptions, missing evidence, alternative explanations and strongest counterarguments. Correct factual errors where possible. Clearly separate sourced evidence from your reasoning and speculation. Do not invent sources. End with exactly one useful NEXT_QUESTION: line that would move the investigation forward.\n\nQUESTION: ${latest.question}\n\nANSWER TO CHALLENGE:\n${latest.answer}",
