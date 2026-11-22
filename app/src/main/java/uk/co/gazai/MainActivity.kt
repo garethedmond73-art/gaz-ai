@@ -284,6 +284,10 @@ private fun GazAiScreen(context: Context) {
                         unfocusedLabelColor = Color(0xFFB8C7D1)
                     )
                 )
+                if (mode != "Library") {
+                    Text("Ask free AI sends only the question you type to an external service. Do not include private or sensitive information.",
+                        color = Color(0xFFFFD18A), style = MaterialTheme.typography.bodySmall)
+                }
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     Button(onClick = {
                         val message = draft.trim()
