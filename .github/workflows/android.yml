@@ -1,4 +1,4 @@
-name: Android APK
+name: Truth Detective Android CI
 
 on:
   push:
@@ -7,29 +7,71 @@ on:
     branches: [ "main" ]
   workflow_dispatch:
 
+permissions:
+  contents: read
+
 jobs:
-  build:
+  build-and-emulator-smoke-test:
     runs-on: ubuntu-latest
+    timeout-minutes: 35
     steps:
       - name: Check out source
         uses: actions/checkout@v4
+
       - name: Set up Java
         uses: actions/setup-java@v5
         with:
           distribution: temurin
           java-version: "17"
+
       - name: Set up Android SDK
         uses: android-actions/setup-android@v3
         with:
           packages: "platform-tools platforms;android-35 build-tools;35.0.0"
+
       - name: Install Gradle
         uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: "8.9"
+
       - name: Build debug APK
         run: gradle assembleDebug
-      - name: Upload APK
+
+      - name: Launch app in Android emulator
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 35
+          arch: x86_64
+          profile: pixel_2
+          emulator-options: -no-window -no-audio -no-boot-anim
+          disable-animations: true
+          script: |
+            mkdir -p test-results
+            adb logcat -c
+            adb install -r app/build/outputs/apk/debug/app-debug.apk
+            adb shell am force-stop uk.co.gazai
+            adb shell monkey -p uk.co.gazai -c android.intent.category.LAUNCHER 1
+            sleep 25
+            if ! adb shell pidof uk.co.gazai > /dev/null; then
+              echo "FAIL: Truth Detective did not remain running after launch." | tee test-results/emulator-smoke-test.txt
+              adb logcat -d -t 4000 > test-results/logcat.txt
+              exit 1
+            fi
+            if adb logcat -d -t 4000 | grep -E "FATAL EXCEPTION|Process: uk.co.gazai, PID:.*has died" > test-results/crashes.txt; then
+              echo "FAIL: A fatal crash was detected during launch." | tee test-results/emulator-smoke-test.txt
+              adb logcat -d -t 4000 > test-results/logcat.txt
+              exit 1
+            fi
+            echo "PASS: Truth Detective installed and remained running for 25 seconds in the Android emulator." | tee test-results/emulator-smoke-test.txt
+            adb logcat -d -t 4000 > test-results/logcat.txt
+
+      - name: Upload APK and emulator test report
+        if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: gaz-ai-debug-apk
-          path: app/build/outputs/apk/debug/app-debug.apk
+          name: truth-detective-build-and-test
+          path: |
+            app/build/outputs/apk/debug/app-debug.apk
+            test-results/
+          if-no-files-found: warn
+          retention-days: 14
