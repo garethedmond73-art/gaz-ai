@@ -218,9 +218,25 @@ class LocalAiViewModel(app: Application) : AndroidViewModel(app) {
                             else "The free AI service returned error $code. Your offline Gaz AI is still available."
                         )
                         val json = JSONObject(body)
-                        json.optJSONArray("choices")?.optJSONObject(0)?.optJSONObject("message")
-                            ?.optString("content")?.takeIf { it.isNotBlank() }
-                            ?: throw IllegalStateException("The free AI service returned an empty answer.")
+                        val message = json.optJSONArray("choices")?.optJSONObject(0)?.optJSONObject("message")
+                        val rawContent = message?.opt("content")
+                        val extracted = when (rawContent) {
+                            is String -> rawContent
+                            is org.json.JSONArray -> (0 until rawContent.length()).mapNotNull { index ->
+                                val part = rawContent.opt(index)
+                                when (part) {
+                                    is String -> part
+                                    is JSONObject -> part.optString("text").takeIf { it.isNotBlank() }
+                                    else -> null
+                                }
+                            }.joinToString("\\n")
+                            is JSONObject -> rawContent.optString("text")
+                            else -> ""
+                        }.trim()
+                        if (extracted.isBlank() || extracted.equals("null", ignoreCase = true)) {
+                            throw IllegalStateException("The free AI service did not return a readable answer. Try again later.")
+                        }
+                        extracted
                     } finally { connection.disconnect() }
                 }
                 _state.value = _state.value.copy(strongerReply = answer)
