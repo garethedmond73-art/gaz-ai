@@ -133,7 +133,7 @@ private fun GazAiScreen(context: Context) {
                     AlertDialog(
                         onDismissRequest = { showClearTruthDialog = false },
                         title = { Text("Clear investigation history?") },
-                        text = { Text("This will delete all investigation history and saved notes shown here. Do you want to proceed?") },
+                        text = { Text("This will delete all saved conversation and investigation history, including your notes. Your library files will not be deleted. Do you want to proceed?") },
                         confirmButton = {
                             TextButton(onClick = {
                                 lines.clear()
