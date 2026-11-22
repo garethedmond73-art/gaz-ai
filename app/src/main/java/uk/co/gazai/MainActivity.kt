@@ -286,7 +286,7 @@ private fun GazAiScreen(context: Context) {
                             Card(Modifier.fillMaxWidth(), shape = RoundedCornerShape(12.dp)) {
                                 Column(Modifier.background(if (isUser) Color(0xFFDCEBFA) else Color(0xFFE7EDEB)).padding(12.dp)) {
                                     Text(
-                                        when (line.role) { "user" -> "You"; "note" -> "Investigation note"; else -> "Gaz AI" },
+                                        when (line.role) { "user" -> "You"; "note" -> "Investigation note"; else -> "Truth Detective" },
                                         style = MaterialTheme.typography.labelMedium
                                     )
                                     Text(line.text, style = MaterialTheme.typography.bodyLarge)
