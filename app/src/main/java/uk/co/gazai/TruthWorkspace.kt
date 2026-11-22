@@ -79,6 +79,28 @@ internal fun saveFreeAiAnswerToTruthBoard(context: Context, question: String, an
     return true
 }
 
+internal fun saveEndlessAnswerToTruthBoard(context: Context, question: String, answer: String): Boolean {
+    val cleanAnswer = answer.trim()
+    if (cleanAnswer.isBlank()) return false
+    val board = TruthBoard(context)
+    val evidence = board.loadEvidence().toMutableList()
+    if (evidence.any {
+            it.source == "Truth Detective · Endless Investigation" &&
+                it.claim == "Endless investigation: ${question.trim().take(180)}" &&
+                it.support.trim() == cleanAnswer
+        }) return false
+    evidence.add(0, TruthEvidence(
+        UUID.randomUUID().toString(),
+        "Human experience",
+        "Endless investigation: ${question.trim().take(180)}",
+        "Truth Detective · Endless Investigation",
+        cleanAnswer.take(12000),
+        "AI-generated research lead, not independent proof. Check original sources, distinguish inference from evidence, and record counter-evidence."
+    ))
+    board.save(evidence, board.loadLinks())
+    return true
+}
+
 private val witnessGroups = listOf(
     "Scripture", "Science", "Philosophy", "Human experience", "Symbols & language patterns"
 )
