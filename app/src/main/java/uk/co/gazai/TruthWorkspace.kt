@@ -164,7 +164,7 @@ internal fun TruthWorkspace(context: Context, ai: LocalAiViewModel, aiState: Loc
 
     Column(Modifier.fillMaxSize(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(5.dp)) {
-            listOf("Investigate", "Evidence", "Connections").forEach { label ->
+            listOf("Investigate", "Evidence", "Connections", "Endless").forEach { label ->
                 if (tab == label) Button(onClick = { tab = label }, modifier = Modifier.weight(1f),
                     contentPadding = PaddingValues(horizontal = 4.dp, vertical = 7.dp)) { Text(label, fontSize = 12.sp) }
                 else TextButton(onClick = { tab = label }, modifier = Modifier.weight(1f),
@@ -235,6 +235,9 @@ internal fun TruthWorkspace(context: Context, ai: LocalAiViewModel, aiState: Loc
                 if (aiState.error != null) Text(aiState.error!!, color = Color(0xFFFFB4AB))
             }
                 }
+            "Endless" -> {
+                EndlessInvestigation(context, ai, aiState)
+            }
             "Evidence" -> {
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                     Text("Evidence ledger · ${evidence.size}", color = Color.White, style = MaterialTheme.typography.titleSmall)
