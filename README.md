@@ -26,3 +26,6 @@ Open in Android Studio and allow Gradle to sync. GitHub Actions builds a debug A
 
 ## Privacy
 Conversation and investigation data stay local by default. The local model does not require a cloud AI service or API key.
+
+
+Truth Detective native integration: investigation workspace, evidence ledger, connection mapping and optional online research.
