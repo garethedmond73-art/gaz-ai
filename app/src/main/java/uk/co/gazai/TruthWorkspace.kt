@@ -130,9 +130,32 @@ internal fun TruthWorkspace(context: Context, ai: LocalAiViewModel, aiState: Loc
                             fontSize = 12.sp, lineHeight = 16.sp)
                     }
                 }
-                OutlinedTextField(value = question, onValueChange = { question = it },
-                    modifier = Modifier.fillMaxWidth(), label = { Text("Investigation question") },
-                    minLines = 2, maxLines = 4)
+                OutlinedTextField(
+                    value = question,
+                    onValueChange = { question = it },
+                    modifier = Modifier.fillMaxWidth(),
+                    label = { Text("Investigation question", color = Color(0xFFB99BFF)) },
+                    minLines = 2,
+                    maxLines = 4,
+                    textStyle = MaterialTheme.typography.bodyLarge.copy(
+                        color = Color.White,
+                        fontSize = 19.sp,
+                        fontWeight = FontWeight.Medium
+                    ),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedTextColor = Color.White,
+                        unfocusedTextColor = Color.White,
+                        disabledTextColor = Color(0xFFE0E7EF),
+                        cursorColor = Color(0xFFFFD166),
+                        focusedBorderColor = Color(0xFFB99BFF),
+                        unfocusedBorderColor = Color(0xFF9B7AE8),
+                        focusedLabelColor = Color(0xFFB99BFF),
+                        unfocusedLabelColor = Color(0xFFB8C7D1),
+                        focusedContainerColor = Color(0xFF202D39),
+                        unfocusedContainerColor = Color(0xFF202D39),
+                        disabledContainerColor = Color(0xFF202D39)
+                    )
+                )
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     Button(onClick = {
                         val q = question.trim()
