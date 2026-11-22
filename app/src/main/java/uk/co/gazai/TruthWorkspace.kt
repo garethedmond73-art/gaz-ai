@@ -31,14 +31,15 @@ private class TruthBoard(context: Context) {
     fun loadEvidence(): List<TruthEvidence> = runCatching {
         val a = JSONArray(prefs.getString("evidence", "[]"))
         val seenIds = mutableSetOf<String>()
+        var repairedIds = false
         val records = (0 until a.length()).map { i -> a.getJSONObject(i).let {
             val storedId = it.getString("id")
-            val uniqueId = if (seenIds.add(storedId)) storedId else UUID.randomUUID().toString().also { seenIds.add(it) }
+            val uniqueId = if (seenIds.add(storedId)) storedId else UUID.randomUUID().toString().also { seenIds.add(it); repairedIds = true }
             TruthEvidence(uniqueId, it.getString("group"), it.getString("claim"),
                 it.optString("source"), it.optString("support"), it.optString("challenge"))
         } }
         // Repair old boards with repeated IDs so two separate records can be connected.
-        if (records.map { it.id }.toSet().size != a.length()) save(records, loadLinks())
+        if (repairedIds) save(records, loadLinks())
         records
     }.getOrDefault(emptyList())
     fun loadLinks(): List<TruthLink> = runCatching {
