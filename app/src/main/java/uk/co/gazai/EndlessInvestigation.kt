@@ -115,7 +115,7 @@ internal fun EndlessInvestigation(context: Context, ai: LocalAiViewModel, aiStat
     }
 
     Column(
-        Modifier.fillMaxSize().verticalScroll(rememberScrollState()),
+        Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(bottom = 24.dp),
         verticalArrangement = Arrangement.spacedBy(9.dp)
     ) {
         Card(Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = Color(0xFF202D39))) {
@@ -133,9 +133,23 @@ internal fun EndlessInvestigation(context: Context, ai: LocalAiViewModel, aiStat
             value = question,
             onValueChange = { question = it },
             modifier = Modifier.fillMaxWidth(),
-            label = { Text("What do you want to investigate?") },
+            label = { Text("What do you want to investigate?", color = Color(0xFFD4C2FF)) },
             minLines = 2,
-            maxLines = 4
+            maxLines = 4,
+            textStyle = MaterialTheme.typography.bodyLarge.copy(color = Color.White, fontSize = 18.sp),
+            colors = OutlinedTextFieldDefaults.colors(
+                focusedTextColor = Color.White,
+                unfocusedTextColor = Color.White,
+                disabledTextColor = Color(0xFFE0E7EF),
+                cursorColor = Color(0xFFFFD166),
+                focusedBorderColor = Color(0xFFB99BFF),
+                unfocusedBorderColor = Color(0xFF9B7AE8),
+                focusedLabelColor = Color(0xFFD4C2FF),
+                unfocusedLabelColor = Color(0xFFD4C2FF),
+                focusedContainerColor = Color(0xFF202D39),
+                unfocusedContainerColor = Color(0xFF202D39),
+                disabledContainerColor = Color(0xFF202D39)
+            )
         )
         Button(
             onClick = {
@@ -153,8 +167,14 @@ internal fun EndlessInvestigation(context: Context, ai: LocalAiViewModel, aiStat
                 }
             },
             enabled = question.isNotBlank() && aiState.ready && !aiState.busy,
-            modifier = Modifier.fillMaxWidth()
-        ) { Text(if (aiState.busy) "Investigating…" else "Investigate and find next question") }
+            modifier = Modifier.fillMaxWidth(),
+            colors = ButtonDefaults.buttonColors(
+                disabledContainerColor = Color(0xFF344353),
+                disabledContentColor = Color(0xFFE0E7EF),
+                containerColor = Color(0xFF7653B5),
+                contentColor = Color.White
+            )
+        ) { Text(if (aiState.busy) "Investigating…" else "Investigate and find next question", color = if (aiState.busy || !aiState.ready) Color(0xFFE0E7EF) else Color.White) }
 
         if (!aiState.ready) {
             Text("Load the offline AI from the Chat tab before starting an investigation.", color = Color(0xFFFFD18A), fontSize = 12.sp)
