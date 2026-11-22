@@ -10,6 +10,7 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -164,8 +165,8 @@ private fun GazAiScreen(context: Context) {
                         }
                     )
                 }
-                Text("GAZ AI", style = MaterialTheme.typography.headlineMedium, color = Color.White)
-                Text("Your assistant. Your device. Your data.", color = Color(0xFFB8C7D1), style = MaterialTheme.typography.bodySmall)
+                Text("GAZ AI", style = MaterialTheme.typography.headlineSmall, color = Color.White, fontSize = 24.sp)
+                Text("Your assistant. Your device. Your data.", color = Color(0xFFB8C7D1), fontSize = 12.sp)
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                     ModeButton("Chat", mode == "Chat", Modifier.weight(1f)) { mode = "Chat" }
                     ModeButton("Truth", mode == "Truth Detective", Modifier.weight(1f)) { mode = "Truth Detective" }
@@ -174,7 +175,7 @@ private fun GazAiScreen(context: Context) {
                 Card(Modifier.fillMaxWidth(), shape = RoundedCornerShape(14.dp)) {
                     Column(Modifier.padding(10.dp)) {
                         Text(when (mode) { "Chat" -> "Offline chat"; "Library" -> "Offline knowledge library"; else -> "Investigation workspace" },
-                            style = MaterialTheme.typography.titleSmall)
+                            style = MaterialTheme.typography.titleSmall, fontSize = 14.sp)
                         Text(
                             if (mode != "Library") when {
                                 aiState.ready -> "Your offline AI is ready. Chat and investigations use the same on-device model and library."
@@ -183,24 +184,24 @@ private fun GazAiScreen(context: Context) {
                                 aiState.modelDownloaded -> "The model is downloaded and will load automatically."
                                 else -> "Download the offline AI model to enable private, on-device answers."
                             } else "Your notes and imported documents stay on this phone.",
-                            style = MaterialTheme.typography.bodySmall
+                            style = MaterialTheme.typography.bodySmall.copy(fontSize = 11.sp, lineHeight = 14.sp)
                         )
                     }
                 }
                 if (mode != "Library") {
                     Card(Modifier.fillMaxWidth(), shape = RoundedCornerShape(12.dp)) {
                         Row(
-                            Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 6.dp),
+                            Modifier.fillMaxWidth().padding(horizontal = 10.dp, vertical = 3.dp),
                             horizontalArrangement = Arrangement.SpaceBetween
                         ) {
                             Column(Modifier.weight(1f).padding(end = 8.dp)) {
-                                Text("Online web search", style = MaterialTheme.typography.titleSmall)
+                                Text("Online web search", style = MaterialTheme.typography.titleSmall, fontSize = 14.sp)
                                 Text(
                                     if (aiState.onlineSearchEnabled)
                                         "ON · Adds live Wikipedia results to Gaz AI's answer"
                                     else
                                         "OFF · Gaz AI uses its offline model and library only",
-                                    style = MaterialTheme.typography.bodySmall
+                                    style = MaterialTheme.typography.bodySmall.copy(fontSize = 11.sp, lineHeight = 14.sp)
                                 )
                             }
                             Switch(
@@ -389,6 +390,15 @@ private fun GazAiScreen(context: Context) {
 
 @androidx.compose.runtime.Composable
 private fun ModeButton(label: String, selected: Boolean, modifier: Modifier = Modifier, onClick: () -> Unit) {
-    if (selected) Button(onClick = onClick, modifier = modifier) { Text(label) }
-    else TextButton(onClick = onClick, modifier = modifier) { Text(label, color = Color(0xFFB8C7D1)) }
+    val compactModifier = modifier.height(38.dp)
+    if (selected) Button(
+        onClick = onClick,
+        modifier = compactModifier,
+        contentPadding = PaddingValues(horizontal = 10.dp, vertical = 0.dp)
+    ) { Text(label, fontSize = 14.sp) }
+    else TextButton(
+        onClick = onClick,
+        modifier = compactModifier,
+        contentPadding = PaddingValues(horizontal = 10.dp, vertical = 0.dp)
+    ) { Text(label, color = Color(0xFFB8C7D1), fontSize = 14.sp) }
 }
