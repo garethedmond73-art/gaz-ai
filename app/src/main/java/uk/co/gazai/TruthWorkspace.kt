@@ -260,7 +260,9 @@ internal fun TruthWorkspace(context: Context, ai: LocalAiViewModel, aiState: Loc
                 }
             }
             "Question tree" -> {
-                EndlessInvestigation(context, ai, aiState, contextNotes)
+                Column(Modifier.weight(1f)) {
+                    EndlessInvestigation(context, ai, aiState, contextNotes)
+                }
             }
             else -> {
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
