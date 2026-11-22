@@ -102,8 +102,8 @@ object StarterLibrary {
         }.filter { it.second > 0 }.sortedByDescending { it.second }.take(limit).map { it.first }
     }
 
-    fun promptContext(query: String): String {
-        val matches = search(query)
+    fun promptContext(query: String, limit: Int = 3): String {
+        val matches = search(query, limit)
         if (matches.isEmpty()) return ""
         return matches.joinToString("\n\n") { entry ->
             "[Library: ${entry.collection} / ${entry.title}]\n${entry.body}\nSource: ${entry.sourceName} — ${entry.sourceUrl}"
