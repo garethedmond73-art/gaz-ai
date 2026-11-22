@@ -29,6 +29,13 @@ object UserLibrary {
         return ImportedDocument(displayName, text, target.name)
     }
 
+    fun saveText(context: Context, displayName: String, text: String): ImportedDocument {
+        val safeName = displayName.replace(Regex("[^A-Za-z0-9._-]"), "_").take(100).ifBlank { "saved_sources" }
+        val target = File(folder(context), "${System.currentTimeMillis()}_$safeName.txt")
+        target.writeText(text.trim(), Charsets.UTF_8)
+        return ImportedDocument(displayName, text.trim(), target.name)
+    }
+
     fun load(context: Context): List<ImportedDocument> =
         folder(context).listFiles()?.filter { it.isFile && it.extension == "txt" }
             ?.sortedByDescending { it.lastModified() }
