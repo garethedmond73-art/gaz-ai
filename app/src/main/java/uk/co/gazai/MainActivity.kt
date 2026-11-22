@@ -100,7 +100,9 @@ private fun GazAiScreen(context: Context) {
         }
     }
 
-    LaunchedEffect(lines.size) {
+    // Follow streamed reply updates as well as newly added messages, so the
+    // newest text remains visible while Gaz AI is generating a response.
+    LaunchedEffect(lines.size, lines.lastOrNull()?.text) {
         if (lines.isNotEmpty()) conversationListState.animateScrollToItem(lines.lastIndex)
     }
 
