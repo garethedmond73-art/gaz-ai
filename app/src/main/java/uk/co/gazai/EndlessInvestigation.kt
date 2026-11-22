@@ -36,14 +36,14 @@ import org.json.JSONArray
 import org.json.JSONObject
 import java.util.UUID
 
-private data class InvestigationQuestion(
+internal data class InvestigationQuestion(
     val id: String,
     val parentId: String?,
     val question: String,
     val answer: String = ""
 )
 
-private class InvestigationTreeStore(context: Context) {
+internal class InvestigationTreeStore(context: Context) {
     private val prefs = context.getSharedPreferences("gaz_endless_investigation", Context.MODE_PRIVATE)
 
     fun load(): List<InvestigationQuestion> = runCatching {
@@ -116,19 +116,9 @@ internal fun EndlessInvestigation(
                 }
             }
             "branches" -> {
-                val marker = "NEXT_QUESTIONS_JSON:"
-                val raw = aiState.reply.substringAfter(marker, "")
-                val first = raw.indexOf('[')
-                val last = raw.lastIndexOf(']')
-                val questions = runCatching {
-                    require(first >= 0 && last > first) { "The AI did not return a question list." }
-                    val array = JSONArray(raw.substring(first, last + 1))
-                    (0 until array.length()).mapNotNull { i ->
-                        array.optString(i).trim().takeIf { it.length > 8 }
-                    }.distinct().take(4)
-                }.getOrDefault(emptyList())
-                val existing = nodes.filter { it.parentId == targetId }.map { it.question.lowercase() }.toSet()
-                val additions = questions.filter { it.lowercase() !in existing }.map {
+                val existing = nodes.filter { it.parentId == targetId }.map { it.question }
+                val questions = parseNewFollowUpQuestions(aiState.reply, existing)
+                val additions = questions.map {
                     InvestigationQuestion(UUID.randomUUID().toString(), targetId, it)
                 }
                 nodes.addAll(additions)
