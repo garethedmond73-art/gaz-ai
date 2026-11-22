@@ -49,7 +49,7 @@ class LocalAiViewModel(app: Application) : AndroidViewModel(app) {
         const val MODEL_URL = "https://huggingface.co/litert-community/Qwen3-4B/resolve/$MODEL_REVISION/$MODEL_FILE"
         const val MODEL_MIN_BYTES = 2L * 1024L * 1024L * 1024L
         private const val SYSTEM_INSTRUCTION =
-            "You are Gaz AI, a careful, balanced research assistant. Answer the exact question directly. " +
+            "You are Truth Detective, a careful, balanced research assistant. Answer the exact question directly. " +
             "Be concise by default: give the answer in 2-5 sentences unless detail is requested. " +
             "Separate established facts, source wording, interpretation and speculation. " +
             "For scripture, give book, chapter and verse only when confident; distinguish the text from later theology. " +
@@ -154,7 +154,7 @@ class LocalAiViewModel(app: Application) : AndroidViewModel(app) {
         val sources = _state.value.sourcesToSave ?: return
         runCatching {
             UserLibrary.saveText(getApplication(), "Online_sources_${System.currentTimeMillis()}.txt",
-                "Gaz AI online research sources\\n\\n$sources")
+                "Truth Detective online research sources\\n\\n$sources")
         }.onSuccess {
             _state.value = _state.value.copy(sourcesToSave = null)
         }.onFailure { error ->
@@ -218,7 +218,7 @@ class LocalAiViewModel(app: Application) : AndroidViewModel(app) {
                 }.getOrNull().orEmpty()
                 throw IllegalStateException(
                     when {
-                        code == 429 -> "The free AI provider is busy or rate-limited. Gaz AI offline is unaffected."
+                        code == 429 -> "The free AI provider is busy or rate-limited. Truth Detective offline mode is unaffected."
                         detail.isNotBlank() -> "Free AI error $code: $detail"
                         else -> "The free AI service returned error $code."
                     }
@@ -277,7 +277,7 @@ class LocalAiViewModel(app: Application) : AndroidViewModel(app) {
                 _state.value = _state.value.copy(strongerReply = answer)
             } catch (e: Exception) {
                 _state.value = _state.value.copy(strongerError =
-                    e.message ?: "The free AI service is unavailable. Your offline Gaz AI is still available.")
+                    e.message ?: "The free AI service is unavailable. Truth Detective offline mode is still available.")
             } finally {
                 _state.value = _state.value.copy(strongerBusy = false)
             }
