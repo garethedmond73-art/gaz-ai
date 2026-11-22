@@ -148,7 +148,10 @@ internal fun TruthWorkspace(context: Context, ai: LocalAiViewModel, aiState: Loc
             "Evidence" -> {
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                     Text("Evidence ledger · ${evidence.size}", color = Color.White, style = MaterialTheme.typography.titleSmall)
-                    Row {\n                        TextButton(onClick = { showAddEvidence = true }) { Text("＋ Add") }\n                        TextButton(onClick = { showClearBoard = true }) { Text("Clear all") }\n                    }
+                    Row {
+                        TextButton(onClick = { showAddEvidence = true }) { Text("＋ Add") }
+                        TextButton(onClick = { showClearBoard = true }) { Text("Clear all") }
+                    }
                 }
                 LazyColumn(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(7.dp)) {
                     items(evidence, key = { it.id }) { item ->
@@ -191,7 +194,14 @@ internal fun TruthWorkspace(context: Context, ai: LocalAiViewModel, aiState: Loc
         }
     }
 
-    if (showClearBoard) AlertDialog(\n        onDismissRequest = { showClearBoard = false },\n        title = { Text("Clear investigation board?") },\n        text = { Text("This will delete all evidence records and connections saved in Truth Detective. Your Gaz AI conversation and library files will not be deleted. Do you want to proceed?") },\n        confirmButton = { TextButton(onClick = { evidence.clear(); links.clear(); board.clear(); showClearBoard = false }) { Text("Delete all") } },\n        dismissButton = { TextButton(onClick = { showClearBoard = false }) { Text("Cancel") } }\n    )\n    if (showAddEvidence) AlertDialog(
+    if (showClearBoard) AlertDialog(
+        onDismissRequest = { showClearBoard = false },
+        title = { Text("Clear investigation board?") },
+        text = { Text("This will delete all evidence records and connections saved in Truth Detective. Your Gaz AI conversation and library files will not be deleted. Do you want to proceed?") },
+        confirmButton = { TextButton(onClick = { evidence.clear(); links.clear(); board.clear(); showClearBoard = false }) { Text("Delete all") } },
+        dismissButton = { TextButton(onClick = { showClearBoard = false }) { Text("Cancel") } }
+    )
+    if (showAddEvidence) AlertDialog(
         onDismissRequest = { showAddEvidence = false },
         title = { Text("Add evidence to ledger") },
         text = { Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
