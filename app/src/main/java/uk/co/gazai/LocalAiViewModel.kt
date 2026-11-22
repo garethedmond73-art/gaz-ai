@@ -35,7 +35,7 @@ data class LocalAiState(
     val modelDownloaded: Boolean = false, val downloading: Boolean = false,
     val downloadProgress: Int = 0, val loading: Boolean = false, val ready: Boolean = false,
     val busy: Boolean = false, val reply: String = "", val error: String? = null,
-    val onlineSearchEnabled: Boolean = false,
+    val onlineSearchEnabled: Boolean = false, val sourcesToSave: String? = null,
     val strongerBusy: Boolean = false, val strongerReply: String = "", val strongerError: String? = null
 )
 
@@ -144,6 +144,22 @@ class LocalAiViewModel(app: Application) : AndroidViewModel(app) {
         _state.value = _state.value.copy(onlineSearchEnabled = enabled)
     }
 
+    fun dismissSourcesPrompt() {
+        _state.value = _state.value.copy(sourcesToSave = null)
+    }
+
+    fun saveOnlineSources() {
+        val sources = _state.value.sourcesToSave ?: return
+        runCatching {
+            UserLibrary.saveText(getApplication(), "Online_sources_${System.currentTimeMillis()}.txt",
+                "Gaz AI online research sources\\n\\n$sources")
+        }.onSuccess {
+            _state.value = _state.value.copy(sourcesToSave = null)
+        }.onFailure { error ->
+            _state.value = _state.value.copy(error = "Could not save sources: ${error.message}")
+        }
+    }
+
     // Public Wikipedia search: no API key, paid credits or conversation/library upload.
     private fun searchWeb(query: String): String {
         val searchUrl = URL("https://en.wikipedia.org/w/api.php?action=query&list=search&format=json&utf8=1&srlimit=4&srsearch=" + URLEncoder.encode(query.take(180), "UTF-8"))
@@ -220,7 +236,7 @@ class LocalAiViewModel(app: Application) : AndroidViewModel(app) {
         val prompt = text.trim()
         if (prompt.isEmpty() || !_state.value.ready || _state.value.busy) return
         scope.launch {
-            _state.value = _state.value.copy(busy = true, reply = "", error = null)
+            _state.value = _state.value.copy(busy = true, reply = "", error = null, sourcesToSave = null)
             try {
                 withTimeout(240_000) {
                     val app = getApplication<Application>()
@@ -250,6 +266,9 @@ class LocalAiViewModel(app: Application) : AndroidViewModel(app) {
                         if (piece.isNotEmpty()) {
                             _state.value = _state.value.copy(reply = _state.value.reply + piece)
                         }
+                    }
+                    if (webContext.isNotBlank()) {
+                        _state.value = _state.value.copy(sourcesToSave = webContext)
                     }
                 }
                 if (_state.value.reply.isBlank()) {
