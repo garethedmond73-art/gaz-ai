@@ -37,6 +37,7 @@ private class TruthBoard(context: Context) {
             TruthLink(it.getString("id"), it.getString("from"), it.getString("to"), it.optString("reason"))
         } }
     }.getOrDefault(emptyList())
+    fun clear() { prefs.edit().remove("evidence").remove("links").apply() }
     fun save(evidence: List<TruthEvidence>, links: List<TruthLink>) {
         val e = JSONArray()
         evidence.forEach { e.put(JSONObject().put("id",it.id).put("group",it.group).put("claim",it.claim)
@@ -74,6 +75,7 @@ internal fun TruthWorkspace(context: Context, ai: LocalAiViewModel, aiState: Loc
     var toId by remember { mutableStateOf("") }
     var showAddEvidence by remember { mutableStateOf(false) }
     var showAddLink by remember { mutableStateOf(false) }
+    var showClearBoard by remember { mutableStateOf(false) }
     var pendingQuestion by remember { mutableStateOf("") }
     var lastSavedReply by remember { mutableStateOf("") }
     var tab by remember { mutableStateOf("Investigate") }
@@ -127,7 +129,7 @@ internal fun TruthWorkspace(context: Context, ai: LocalAiViewModel, aiState: Loc
                         val q = question.trim()
                         if (q.isNotBlank() && aiState.ready && !aiState.busy) {
                             pendingQuestion = q
-                            lastSavedReply = ""
+                            lastSavedReply = aiState.reply
                             ai.send("Investigate this question carefully. Separate established evidence, interpretation and speculation. Include the strongest counter-evidence, what remains unknown, and sources only when available. Treat all saved board material as provisional context.\n\nQUESTION: $q", contextNotes, aiState.onlineSearchEnabled)
                         }
                     }, enabled = question.isNotBlank() && aiState.ready && !aiState.busy,
@@ -146,7 +148,7 @@ internal fun TruthWorkspace(context: Context, ai: LocalAiViewModel, aiState: Loc
             "Evidence" -> {
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                     Text("Evidence ledger · ${evidence.size}", color = Color.White, style = MaterialTheme.typography.titleSmall)
-                    TextButton(onClick = { showAddEvidence = true }) { Text("＋ Add") }
+                    Row {\n                        TextButton(onClick = { showAddEvidence = true }) { Text("＋ Add") }\n                        TextButton(onClick = { showClearBoard = true }) { Text("Clear all") }\n                    }
                 }
                 LazyColumn(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(7.dp)) {
                     items(evidence, key = { it.id }) { item ->
@@ -189,7 +191,7 @@ internal fun TruthWorkspace(context: Context, ai: LocalAiViewModel, aiState: Loc
         }
     }
 
-    if (showAddEvidence) AlertDialog(
+    if (showClearBoard) AlertDialog(\n        onDismissRequest = { showClearBoard = false },\n        title = { Text("Clear investigation board?") },\n        text = { Text("This will delete all evidence records and connections saved in Truth Detective. Your Gaz AI conversation and library files will not be deleted. Do you want to proceed?") },\n        confirmButton = { TextButton(onClick = { evidence.clear(); links.clear(); board.clear(); showClearBoard = false }) { Text("Delete all") } },\n        dismissButton = { TextButton(onClick = { showClearBoard = false }) { Text("Cancel") } }\n    )\n    if (showAddEvidence) AlertDialog(
         onDismissRequest = { showAddEvidence = false },
         title = { Text("Add evidence to ledger") },
         text = { Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
