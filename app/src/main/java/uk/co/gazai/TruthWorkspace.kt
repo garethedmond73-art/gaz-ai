@@ -89,7 +89,7 @@ internal fun TruthWorkspace(context: Context, ai: LocalAiViewModel, aiState: Loc
             aiState.reply != "Thinking…" && aiState.reply != lastSavedReply) {
             val record = TruthEvidence(UUID.randomUUID().toString(), "Human experience",
                 "AI investigation: ${pendingQuestion.take(180)}",
-                "Gaz AI on-device model" + if (aiState.onlineSearchEnabled) " with optional web context" else " · offline",
+                "Truth Detective on-device model" + if (aiState.onlineSearchEnabled) " with optional web context" else " · offline",
                 aiState.reply, "AI-generated research is provisional. Verify original sources and seek counter-evidence.")
             evidence.add(0, record)
             board.save(evidence, links)
@@ -169,10 +169,10 @@ internal fun TruthWorkspace(context: Context, ai: LocalAiViewModel, aiState: Loc
                         modifier = Modifier.weight(1f)) { Text(if (aiState.busy) "Investigating…" else "Investigate") }
                     OutlinedButton(onClick = { showAddEvidence = true }, modifier = Modifier.weight(1f)) { Text("＋ Add evidence") }
                 }
-                if (pendingQuestion.isNotBlank()) Text("Investigation running. When Gaz AI finishes, the answer is added to the evidence ledger as provisional.", color = Color(0xFFFFD18A), fontSize = 12.sp)
+                if (pendingQuestion.isNotBlank()) Text("Investigation running. When Truth Detective finishes, the answer is added to the evidence ledger as provisional.", color = Color(0xFFFFD18A), fontSize = 12.sp)
                 if (aiState.reply.isNotBlank()) {
                     Card(Modifier.fillMaxWidth()) { Column(Modifier.padding(10.dp)) {
-                        Text("Gaz AI investigation", style = MaterialTheme.typography.titleSmall)
+                        Text("Truth Detective investigation", style = MaterialTheme.typography.titleSmall)
                         Text(aiState.reply, style = MaterialTheme.typography.bodyMedium)
                     } }
                 }
@@ -231,7 +231,7 @@ internal fun TruthWorkspace(context: Context, ai: LocalAiViewModel, aiState: Loc
     if (showClearBoard) AlertDialog(
         onDismissRequest = { showClearBoard = false },
         title = { Text("Clear investigation board?") },
-        text = { Text("This will delete all evidence records and connections saved in Truth Detective. Your Gaz AI conversation and library files will not be deleted. Do you want to proceed?") },
+        text = { Text("This will delete all evidence records and connections saved in Truth Detective. Your Truth Detective conversation and library files will not be deleted. Do you want to proceed?") },
         confirmButton = { TextButton(onClick = { evidence.clear(); links.clear(); board.clear(); showClearBoard = false }) { Text("Delete all") } },
         dismissButton = { TextButton(onClick = { showClearBoard = false }) { Text("Cancel") } }
     )
