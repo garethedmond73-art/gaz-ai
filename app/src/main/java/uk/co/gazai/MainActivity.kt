@@ -19,6 +19,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
@@ -133,7 +134,7 @@ private fun GazAiScreen(context: Context) {
     MaterialTheme {
         Surface(Modifier.fillMaxSize(), color = Color(0xFF101820)) {
             Column(
-                Modifier.fillMaxSize().navigationBarsPadding().imePadding().padding(horizontal = 12.dp, vertical = 8.dp),
+                Modifier.fillMaxSize().statusBarsPadding().navigationBarsPadding().imePadding().padding(horizontal = 12.dp, vertical = 6.dp),
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 aiState.sourcesToSave?.let { sources ->
@@ -170,7 +171,7 @@ private fun GazAiScreen(context: Context) {
                         }
                     )
                 }
-                Text("GAZ AI", style = MaterialTheme.typography.headlineSmall, color = Color.White, fontSize = 24.sp)
+                Text("GAZ AI", style = MaterialTheme.typography.headlineSmall, color = Color.White, fontSize = 22.sp, lineHeight = 26.sp)
                 Text("Your assistant. Your device. Your data.", color = Color(0xFFB8C7D1), fontSize = 12.sp)
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                     ModeButton("Chat", mode == "Chat", Modifier.weight(1f)) { mode = "Chat" }
@@ -342,8 +343,8 @@ private fun GazAiScreen(context: Context) {
                     )
                 )
                 if (mode != "Library") {
-                    Text("Ask free AI sends only the question you type to an external service. Do not include private or sensitive information.",
-                        color = Color(0xFFFFD18A), style = MaterialTheme.typography.bodySmall)
+                    Text("Free AI sends only this question to an external service. Do not include private or sensitive information.",
+                        color = Color(0xFFFFD18A), style = MaterialTheme.typography.bodySmall.copy(fontSize = 10.sp, lineHeight = 13.sp))
                 }
                 // Keep the primary action visible in every tab, including Library.
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
