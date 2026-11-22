@@ -36,20 +36,28 @@ object UserLibrary {
                 runCatching { ImportedDocument(file.name.substringAfter('_'), file.readText(), file.name) }.getOrNull()
             } ?: emptyList()
 
-    fun promptContext(context: Context, query: String, limit: Int = 2): String {
-        val terms = query.lowercase().split(Regex("[^\\p{L}\\p{N}]+")).filter { it.length > 2 }.toSet()
+    fun promptContext(context: Context, query: String, limit: Int = 4): String {
+        val normalized = query.lowercase().trim()
+        val terms = normalized.split(Regex("[^\\p{L}\\p{N}]+"))
+            .filter { it.length > 2 }.toSet()
         if (terms.isEmpty()) return ""
-        return load(context).map { doc ->
-            val lower = doc.text.lowercase()
-            val score = terms.sumOf { term -> lower.windowed(term.length).count { it == term }.coerceAtMost(8) }
-            doc to score
-        }.filter { it.second > 0 }.sortedByDescending { it.second }.take(limit)
-            .joinToString("\n\n") { (doc, _) ->
-                val lower = doc.text.lowercase()
-                val matchAt = terms.asSequence().map { lower.indexOf(it) }.filter { it >= 0 }.minOrNull() ?: 0
-                val start = (matchAt - 250).coerceAtLeast(0)
-                val excerpt = doc.text.substring(start, (start + 700).coerceAtMost(doc.text.length))
-                "[Imported library: ${doc.name}]\n$excerpt"
+        data class Match(val doc: ImportedDocument, val excerpt: String, val score: Int)
+        val matches = mutableListOf<Match>()
+        load(context).forEach { doc ->
+            val paragraphs = doc.text.split(Regex("\\n\\s*\\n|(?<=[.!?])\\s+(?=[A-Z0-9])"))
+                .filter { it.isNotBlank() }
+            (if (paragraphs.isEmpty()) listOf(doc.text) else paragraphs).forEach { paragraph ->
+                val lower = paragraph.lowercase()
+                val hits = terms.count { lower.contains(it) }
+                if (hits > 0) {
+                    val phraseBonus = if (normalized.length > 5 && lower.contains(normalized)) 8 else 0
+                    matches.add(Match(doc, paragraph.trim().take(1100), hits * 3 + phraseBonus))
+                }
+            }
+        }
+        return matches.sortedByDescending { it.score }.take(limit)
+            .joinToString("\\n\\n") { match ->
+                "[Imported library: ${match.doc.name}]\\n${match.excerpt}"
             }
     }
 
