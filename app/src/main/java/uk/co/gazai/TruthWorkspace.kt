@@ -163,12 +163,17 @@ internal fun TruthWorkspace(context: Context, ai: LocalAiViewModel, aiState: Loc
     }
 
     Column(Modifier.fillMaxSize(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(5.dp)) {
-            listOf("Investigate", "Evidence", "Connections", "Endless").forEach { label ->
-                if (tab == label) Button(onClick = { tab = label }, modifier = Modifier.weight(1f),
-                    contentPadding = PaddingValues(horizontal = 4.dp, vertical = 7.dp)) { Text(label, fontSize = 12.sp) }
-                else TextButton(onClick = { tab = label }, modifier = Modifier.weight(1f),
-                    contentPadding = PaddingValues(horizontal = 4.dp, vertical = 7.dp)) { Text(label, fontSize = 12.sp) }
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(3.dp)) {
+            listOf("Investigate" to "Investigate", "Evidence" to "Evidence",
+                "Connections" to "Links", "Endless" to "Endless").forEach { (tabKey, label) ->
+                if (tab == tabKey) Button(onClick = { tab = tabKey }, modifier = Modifier.weight(1f).heightIn(min = 40.dp),
+                    contentPadding = PaddingValues(horizontal = 2.dp, vertical = 5.dp)) {
+                    Text(label, fontSize = 10.sp, maxLines = 1, softWrap = false)
+                }
+                else TextButton(onClick = { tab = tabKey }, modifier = Modifier.weight(1f).heightIn(min = 40.dp),
+                    contentPadding = PaddingValues(horizontal = 2.dp, vertical = 5.dp)) {
+                    Text(label, color = Color(0xFFD4C2FF), fontSize = 10.sp, maxLines = 1, softWrap = false)
+                }
             }
         }
         when (tab) {
@@ -184,7 +189,7 @@ internal fun TruthWorkspace(context: Context, ai: LocalAiViewModel, aiState: Loc
                         contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp)
                     ) {
                         Text(q, modifier = Modifier.fillMaxWidth(), textAlign = TextAlign.Start,
-                            fontSize = 12.sp, lineHeight = 16.sp)
+                            fontSize = 12.sp, lineHeight = 16.sp, color = Color(0xFFD4C2FF))
                     }
                 }
                 OutlinedTextField(
@@ -222,7 +227,13 @@ internal fun TruthWorkspace(context: Context, ai: LocalAiViewModel, aiState: Loc
                             ai.send("Investigate this question carefully. First give a clear, readable answer. Separate established evidence, interpretation and speculation. Include the strongest counter-evidence, what remains unknown, and sources only when available. Do not invent sources or facts. Treat all saved board material as provisional context. At the very end, append a section beginning exactly with LEDGER_JSON: followed by a valid JSON array of 3 to 8 distinct evidence records extracted only from the answer. Each object must have these string fields: group (one of Scripture, Science, Philosophy, Human experience, Symbols & language patterns), claim (one concise standalone finding), source (specific source title, reference or URL if actually available, otherwise empty string), support (what in the answer supports this finding), challenge (counter-evidence or an honest statement that none was identified). Do not use markdown fences around the JSON. Do not create duplicate or trivial records.\n\nQUESTION: $q", contextNotes, aiState.onlineSearchEnabled)
                         }
                     }, enabled = question.isNotBlank() && aiState.ready && !aiState.busy,
-                        modifier = Modifier.weight(1f)) { Text(if (aiState.busy) "Investigating…" else "Investigate") }
+                        modifier = Modifier.weight(1f),
+                        colors = ButtonDefaults.buttonColors(
+                            disabledContainerColor = Color(0xFF344353),
+                            disabledContentColor = Color(0xFFE0E7EF),
+                            containerColor = Color(0xFF7653B5),
+                            contentColor = Color.White
+                        )) { Text(if (aiState.busy) "Investigating…" else "Investigate", maxLines = 1, softWrap = false) }
                     OutlinedButton(onClick = { showAddEvidence = true }, modifier = Modifier.weight(1f)) { Text("＋ Add evidence") }
                 }
                 if (pendingQuestion.isNotBlank()) Text("Investigation running. When Truth Detective finishes, the answer is added to the evidence ledger as provisional.", color = Color(0xFFFFD18A), fontSize = 12.sp)
