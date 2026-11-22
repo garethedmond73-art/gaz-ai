@@ -41,6 +41,11 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.text.font.FontStyle
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -245,7 +250,7 @@ private fun GazAiScreen(context: Context) {
                             Card(Modifier.fillMaxWidth(), shape = RoundedCornerShape(12.dp)) {
                                 Column(Modifier.background(Color(0xFFE7EDEB)).padding(12.dp)) {
                                     Text(if (line.role == "user") "Your library question" else "Gaz AI", style = MaterialTheme.typography.labelMedium)
-                                    Text(line.text, style = MaterialTheme.typography.bodyLarge)
+                                    MarkdownText(line.text, style = MaterialTheme.typography.bodyLarge)
                                 }
                             }
                         }
@@ -294,20 +299,26 @@ private fun GazAiScreen(context: Context) {
                             }
                         }
                     }
-                }
-                if (mode != "Library") {
-                    aiState.strongerReply.takeIf { it.isNotBlank() }?.let { answer ->
-                        Card(Modifier.fillMaxWidth(), shape = RoundedCornerShape(12.dp)) {
-                            Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                                Text("FREE STRONGER AI · SECOND OPINION", style = MaterialTheme.typography.labelMedium)
-                                Text(answer, style = MaterialTheme.typography.bodyMedium)
-                                Text("This answer came from an external service and may be wrong. Compare it with Gaz AI and your sources.",
-                                    style = MaterialTheme.typography.bodySmall)
+                    if (mode != "Library") {
+                        aiState.strongerReply.takeIf { it.isNotBlank() }?.let { answer ->
+                            item(key = "stronger_second_opinion") {
+                                Card(Modifier.fillMaxWidth(), shape = RoundedCornerShape(12.dp)) {
+                                    Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                                        Text("FREE STRONGER AI · SECOND OPINION", style = MaterialTheme.typography.labelMedium)
+                                        MarkdownText(answer, style = MaterialTheme.typography.bodyMedium)
+                                        Text("This answer came from an external service and may be wrong.",
+                                            style = MaterialTheme.typography.bodySmall)
+                                    }
+                                }
                             }
                         }
+                        aiState.strongerError?.let { message ->
+                            item(key = "stronger_error") { Text(message, color = Color(0xFFFFB4AB), style = MaterialTheme.typography.bodySmall) }
+                        }
+                        if (aiState.strongerBusy) item(key = "stronger_busy") {
+                            Text("Contacting the free AI service…", color = Color(0xFFB8C7D1), style = MaterialTheme.typography.bodySmall)
+                        }
                     }
-                    aiState.strongerError?.let { Text(it, color = Color(0xFFFFB4AB), style = MaterialTheme.typography.bodySmall) }
-                    if (aiState.strongerBusy) Text("Contacting the free AI service…", color = Color(0xFFB8C7D1), style = MaterialTheme.typography.bodySmall)
                 }
                 OutlinedTextField(
                     value = draft, onValueChange = { draft = it }, modifier = Modifier.fillMaxWidth(),
@@ -386,6 +397,25 @@ private fun GazAiScreen(context: Context) {
                 }            }
         }
     }
+}
+
+
+@androidx.compose.runtime.Composable
+private fun MarkdownText(text: String, style: androidx.compose.ui.text.TextStyle) {
+    val annotated = buildAnnotatedString {
+        val pattern = Regex("""\*\*(.+?)\*\*|(?<!\*)\*([^*]+?)\*(?!\*)""")
+        var cursor = 0
+        pattern.findAll(text).forEach { match ->
+            append(text.substring(cursor, match.range.first))
+            val bold = match.groups[1]?.value
+            val italic = match.groups[2]?.value
+            if (bold != null) withStyle(SpanStyle(fontWeight = FontWeight.Bold)) { append(bold) }
+            else if (italic != null) withStyle(SpanStyle(fontStyle = FontStyle.Italic)) { append(italic) }
+            cursor = match.range.last + 1
+        }
+        if (cursor < text.length) append(text.substring(cursor))
+    }
+    Text(annotated, style = style)
 }
 
 @androidx.compose.runtime.Composable
