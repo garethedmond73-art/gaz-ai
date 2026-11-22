@@ -57,6 +57,13 @@ class LocalAiViewModel(app: Application) : AndroidViewModel(app) {
     private val _state = MutableStateFlow(LocalAiState(modelDownloaded = modelFile.exists()))
     val state: StateFlow<LocalAiState> = _state.asStateFlow()
 
+    // Android may reclaim the app process while it is in the background.
+    // The downloaded model remains on disk, so restore the native engine automatically
+    // whenever this ViewModel is recreated instead of making the user tap Load again.
+    init {
+        if (modelFile.exists()) loadModel()
+    }
+
     private fun createConversation(): Conversation =
         checkNotNull(engine).createConversation(
             ConversationConfig(
@@ -110,7 +117,7 @@ class LocalAiViewModel(app: Application) : AndroidViewModel(app) {
         if (_state.value.loading || _state.value.ready) return
         if (!modelFile.exists()) { _state.value = _state.value.copy(error = "Download the offline model first."); return }
         scope.launch {
-            _state.value = _state.value.copy(loading = true, error = null)
+            _state.value = _state.value.copy(loading = true, modelDownloaded = true, error = null)
             try {
                 val config = EngineConfig(modelPath = modelFile.absolutePath, backend = Backend.CPU(),
                     cacheDir = getApplication<Application>().cacheDir.absolutePath)
