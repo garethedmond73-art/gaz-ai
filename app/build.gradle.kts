@@ -36,6 +36,7 @@ dependencies {
     implementation("androidx.lifecycle:lifecycle-runtime-compose:2.10.0")
     implementation("com.tom-roush:pdfbox-android:2.0.27.0")
     debugImplementation("androidx.compose.ui:ui-tooling")
+    androidTestImplementation("androidx.test:core:1.6.1")
     androidTestImplementation("androidx.test:runner:1.6.2")
     androidTestImplementation("androidx.test:rules:1.6.1")
     androidTestImplementation("androidx.test.ext:junit:1.2.1")
