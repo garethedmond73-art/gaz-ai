@@ -5,6 +5,8 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -113,6 +115,7 @@ internal fun TruthWorkspace(context: Context, ai: LocalAiViewModel, aiState: Loc
         }
         when (tab) {
             "Investigate" -> {
+                Column(Modifier.weight(1f).fillMaxWidth().verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                 Text("Five witness groups", color = Color.White, style = MaterialTheme.typography.titleSmall)
                 witnessGroups.forEach { Text("• $it", color = Color(0xFFB8C7D1), fontSize = 12.sp) }
                 Text("Start with a question", color = Color.White, style = MaterialTheme.typography.titleSmall)
@@ -145,6 +148,7 @@ internal fun TruthWorkspace(context: Context, ai: LocalAiViewModel, aiState: Loc
                 }
                 if (aiState.error != null) Text(aiState.error!!, color = Color(0xFFFFB4AB))
             }
+                }
             "Evidence" -> {
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                     Text("Evidence ledger · ${evidence.size}", color = Color.White, style = MaterialTheme.typography.titleSmall)
