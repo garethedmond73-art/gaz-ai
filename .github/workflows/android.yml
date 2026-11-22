@@ -13,7 +13,7 @@ permissions:
 jobs:
   build-and-emulator-smoke-test:
     runs-on: ubuntu-latest
-    timeout-minutes: 35
+    timeout-minutes: 40
     steps:
       - name: Check out source
         uses: actions/checkout@v4
@@ -75,27 +75,33 @@ jobs:
           print("PASS: Truth Detective remained running for 25 seconds.")
           PY
 
-      - name: Launch app in Android emulator
+      - name: Launch app and run instrumentation tests
         uses: reactivecircus/android-emulator-runner@v2
         env:
-          # GitHub-hosted runners do not expose KVM to the emulator.
-          # Explicitly allow the Android emulator's slower TCG software mode.
           ANDROID_I_WANT_MY_TCG: "yes"
         with:
-          api-level: 35
+          api-level: 34
           arch: x86_64
           profile: pixel_2
-          emulator-options: -no-window -no-audio -no-boot-anim -gpu swiftshader_indirect
+          emulator-options: -no-window -no-audio -no-boot-anim -no-snapshot -wipe-data -gpu swiftshader_indirect
           disable-animations: true
-          script: >-
-            mkdir -p test-results &&
-            adb logcat -c &&
-            adb install -r app/build/outputs/apk/debug/app-debug.apk &&
-            adb shell am force-stop uk.co.gazai &&
-            adb shell monkey -p uk.co.gazai -c android.intent.category.LAUNCHER 1 &&
-            sleep 25 &&
-            python3 emulator-smoke-test.py &&
-            gradle connectedDebugAndroidTest
+          script: |
+            set -e
+            mkdir -p test-results
+            adb wait-for-device
+            adb logcat -c
+            adb install -r app/build/outputs/apk/debug/app-debug.apk
+            adb shell am force-stop uk.co.gazai
+            adb shell monkey -p uk.co.gazai -c android.intent.category.LAUNCHER 1
+            sleep 25
+            python3 emulator-smoke-test.py
+            adb logcat -c
+            set +e
+            gradle connectedDebugAndroidTest --no-daemon --max-workers=1 --stacktrace
+            test_status=$?
+            adb logcat -d -t 12000 > test-results/instrumentation-logcat.txt
+            adb shell dumpsys activity instrumentation > test-results/instrumentation-state.txt
+            exit $test_status
 
       - name: Upload APK and emulator test report
         if: always()
@@ -104,6 +110,8 @@ jobs:
           name: truth-detective-build-and-test
           path: |
             app/build/outputs/apk/debug/app-debug.apk
+            app/build/reports/androidTests/
+            app/build/outputs/androidTest-results/
             test-results/
           if-no-files-found: warn
           retention-days: 14
