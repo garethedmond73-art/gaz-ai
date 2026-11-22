@@ -93,6 +93,19 @@ private val starterQuestions = listOf(
 @Composable
 internal fun TruthWorkspace(context: Context, ai: LocalAiViewModel, aiState: LocalAiState) {
     val board = remember { TruthBoard(context) }
+    val truthFieldColors = OutlinedTextFieldDefaults.colors(
+        focusedTextColor = Color.White,
+        unfocusedTextColor = Color.White,
+        disabledTextColor = Color(0xFFE0E7EF),
+        cursorColor = Color(0xFFFFD166),
+        focusedBorderColor = Color(0xFFB99BFF),
+        unfocusedBorderColor = Color(0xFF9B7AE8),
+        focusedLabelColor = Color(0xFFD4C2FF),
+        unfocusedLabelColor = Color(0xFFB8C7D1),
+        focusedContainerColor = Color(0xFF202D39),
+        unfocusedContainerColor = Color(0xFF202D39),
+        disabledContainerColor = Color(0xFF202D39)
+    )
     val evidence = remember { mutableStateListOf<TruthEvidence>().apply { addAll(board.loadEvidence()) } }
     val links = remember { mutableStateListOf<TruthLink>().apply { addAll(board.loadLinks()) } }
     var question by remember { mutableStateOf("") }
@@ -312,13 +325,13 @@ internal fun TruthWorkspace(context: Context, ai: LocalAiViewModel, aiState: Loc
             modifier = Modifier.heightIn(max = 440.dp).verticalScroll(rememberScrollState()),
             verticalArrangement = Arrangement.spacedBy(6.dp)
         ) {
-            OutlinedTextField(value = claim, onValueChange = { claim = it }, label = { Text("Claim or observation") })
+            OutlinedTextField(value = claim, onValueChange = { claim = it }, label = { Text("Claim or observation") }, colors = truthFieldColors)
             witnessGroups.forEach { label ->
                 Row { RadioButton(selected = group == label, onClick = { group = label }); Text(label, modifier = Modifier.padding(top = 12.dp), fontSize = 12.sp) }
             }
-            OutlinedTextField(value = source, onValueChange = { source = it }, label = { Text("Source") })
-            OutlinedTextField(value = support, onValueChange = { support = it }, label = { Text("Supporting evidence") })
-            OutlinedTextField(value = challenge, onValueChange = { challenge = it }, label = { Text("Counter-evidence / alternative") })
+            OutlinedTextField(value = source, onValueChange = { source = it }, label = { Text("Source") }, colors = truthFieldColors)
+            OutlinedTextField(value = support, onValueChange = { support = it }, label = { Text("Supporting evidence") }, colors = truthFieldColors)
+            OutlinedTextField(value = challenge, onValueChange = { challenge = it }, label = { Text("Counter-evidence / alternative") }, colors = truthFieldColors)
         } },
         confirmButton = { TextButton(onClick = {
             if (claim.isNotBlank()) {
@@ -358,7 +371,7 @@ internal fun TruthWorkspace(context: Context, ai: LocalAiViewModel, aiState: Loc
             if (fromId.isNotBlank() && fromId == toId) {
                 Text("Choose a different record for A and B.", color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
             }
-            OutlinedTextField(value = connectionReason, onValueChange = { connectionReason = it }, label = { Text("Why might they connect?") })
+            OutlinedTextField(value = connectionReason, onValueChange = { connectionReason = it }, label = { Text("Why might they connect?") }, colors = truthFieldColors)
         } },
         confirmButton = { TextButton(onClick = {
             if (fromId.isNotBlank() && toId.isNotBlank() && fromId != toId) {
