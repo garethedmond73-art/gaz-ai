@@ -239,7 +239,8 @@ private fun GazAiScreen(context: Context) {
                     verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     if (mode == "Library") {
-                        items(lines) { line ->
+                        // Investigation notes belong to Truth, not the reference library list.
+                        items(lines.filter { it.role != "note" }) { line ->
                             Card(Modifier.fillMaxWidth(), shape = RoundedCornerShape(12.dp)) {
                                 Column(Modifier.background(Color(0xFFE7EDEB)).padding(12.dp)) {
                                     Text(if (line.role == "user") "Your library question" else "Gaz AI", style = MaterialTheme.typography.labelMedium)
@@ -329,6 +330,7 @@ private fun GazAiScreen(context: Context) {
                     Text("Ask free AI sends only the question you type to an external service. Do not include private or sensitive information.",
                         color = Color(0xFFFFD18A), style = MaterialTheme.typography.bodySmall)
                 }
+                // Keep the primary action visible in every tab, including Library.
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     Button(onClick = {
                         val message = draft.trim()
@@ -360,24 +362,27 @@ private fun GazAiScreen(context: Context) {
                             enabled = draft.isNotBlank() && !aiState.strongerBusy
                         ) { Text(if (aiState.strongerBusy) "Asking…" else "Ask free AI", color = Color(0xFFB8C7D1)) }
                     }
-                    if (mode == "Truth Detective") {
-                        TextButton(onClick = {
-                            val note = draft.trim()
-                            if (note.isNotEmpty()) {
-                                lines.add(ChatLine("note", "Investigation note: $note"))
-                                history.save(lines)
-                                draft = ""
-                            }
-                        }, enabled = draft.isNotBlank() && !aiState.busy) {
-                            Text("Save note", color = Color(0xFFB8C7D1))
-                        }
-                    }
-                    TextButton(onClick = {
-                        if (mode == "Truth Detective") showClearTruthDialog = true
-                        else { lines.clear(); history.save(lines) }
-                    }) { Text("Clear history", color = Color(0xFFB8C7D1)) }
                 }
-            }
+                if (mode == "Truth Detective" || mode == "Chat") {
+                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        if (mode == "Truth Detective") {
+                            TextButton(onClick = {
+                                val note = draft.trim()
+                                if (note.isNotEmpty()) {
+                                    lines.add(ChatLine("note", "Investigation note: $note"))
+                                    history.save(lines)
+                                    draft = ""
+                                }
+                            }, enabled = draft.isNotBlank() && !aiState.busy) {
+                                Text("Save note", color = Color(0xFFB8C7D1))
+                            }
+                        }
+                        TextButton(onClick = {
+                            if (mode == "Truth Detective") showClearTruthDialog = true
+                            else { lines.clear(); history.save(lines) }
+                        }) { Text("Clear history", color = Color(0xFFB8C7D1)) }
+                    }
+                }            }
         }
     }
 }
