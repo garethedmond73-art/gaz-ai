@@ -39,11 +39,15 @@ jobs:
 
       - name: Launch app in Android emulator
         uses: reactivecircus/android-emulator-runner@v2
+        env:
+          # GitHub-hosted runners do not expose KVM to the emulator.
+          # Explicitly allow the Android emulator's slower TCG software mode.
+          ANDROID_I_WANT_MY_TCG: "yes"
         with:
           api-level: 35
           arch: x86_64
           profile: pixel_2
-          emulator-options: -no-window -no-audio -no-boot-anim
+          emulator-options: -no-window -no-audio -no-boot-anim -gpu swiftshader_indirect
           disable-animations: true
           script: |
             mkdir -p test-results
