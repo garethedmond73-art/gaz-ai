@@ -312,6 +312,16 @@ private fun GazAiScreen(context: Context) {
                                         MarkdownText(answer, style = MaterialTheme.typography.bodyMedium)
                                         Text("This answer came from an external service and may be wrong.",
                                             style = MaterialTheme.typography.bodySmall)
+                                        var savedToEvidence by remember(answer) { mutableStateOf(false) }
+                                        TextButton(onClick = {
+                                            savedToEvidence = saveFreeAiAnswerToTruthBoard(
+                                                context,
+                                                lines.lastOrNull { it.role == "user" }?.text.orEmpty(),
+                                                answer
+                                            )
+                                        }, enabled = !savedToEvidence) {
+                                            Text(if (savedToEvidence) "Saved to Truth evidence" else "＋ Save answer to Truth evidence")
+                                        }
                                     }
                                 }
                             }
