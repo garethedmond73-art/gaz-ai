@@ -185,7 +185,7 @@ internal fun EndlessInvestigation(context: Context, ai: LocalAiViewModel, aiStat
         if (aiState.error != null) Text(aiState.error!!, color = Color(0xFFFFB4AB), fontSize = 12.sp)
 
         if (latest != null) {
-            Card(Modifier.fillMaxWidth()) {
+            Card(Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = Color(0xFF202D39))) {
                 Column(Modifier.padding(11.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                     Text("LATEST STEP · ${steps.size}", color = Color(0xFF7653B5), fontSize = 10.sp, fontWeight = FontWeight.Bold)
                     Text(latest.question, color = Color.White, fontWeight = FontWeight.SemiBold, fontSize = 16.sp)
