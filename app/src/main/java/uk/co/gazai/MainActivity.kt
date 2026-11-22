@@ -130,6 +130,23 @@ private fun GazAiScreen(context: Context) {
                 Modifier.fillMaxSize().navigationBarsPadding().imePadding().padding(horizontal = 12.dp, vertical = 8.dp),
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
+                aiState.sourcesToSave?.let { sources ->
+                    AlertDialog(
+                        onDismissRequest = { ai.dismissSourcesPrompt() },
+                        title = { Text("Save these sources to your library?") },
+                        text = { Text("Gaz AI used online search results for this answer. Would you like to keep the source titles, snippets and links in your on-device library for future investigations?") },
+                        confirmButton = {
+                            TextButton(onClick = {
+                                ai.saveOnlineSources()
+                                imported.clear()
+                                imported.addAll(UserLibrary.load(context))
+                            }) { Text("Save to library") }
+                        },
+                        dismissButton = {
+                            TextButton(onClick = { ai.dismissSourcesPrompt() }) { Text("Not now") }
+                        }
+                    )
+                }
                 if (showClearTruthDialog) {
                     AlertDialog(
                         onDismissRequest = { showClearTruthDialog = false },
