@@ -184,8 +184,73 @@ class LocalAiViewModel(app: Application) : AndroidViewModel(app) {
             return "LIVE WEB SEARCH RESULTS (Wikipedia search; retrieved just now). Treat snippets as leads, not proof. Verify claims and cite only these supplied links:\n" + sources.joinToString("\n\n")
         } finally { connection.disconnect() }
     }
-    // Optional anonymous stronger-model request. Only the explicitly selected question is sent;
+    // Optional anonymous free-model request. Only the explicitly selected question is sent;
     // no chat history, investigation notes or library contents are included.
+    private fun requestFreeAi(model: String, prompt: String, maxTokens: Int): String {
+        val url = URL("https://ai-gateway.kilo.ai/api/v1/chat/completions")
+        val connection = (url.openConnection() as HttpURLConnection).apply {
+            requestMethod = "POST"
+            connectTimeout = 15000
+            readTimeout = 60000
+            doOutput = true
+            setRequestProperty("Content-Type", "application/json")
+            setRequestProperty("Accept", "application/json")
+            setRequestProperty("User-Agent", "GazAI-Android/1.0")
+        }
+        try {
+            val payload = JSONObject()
+                .put("model", model)
+                .put("messages", org.json.JSONArray().put(
+                    JSONObject().put("role", "user").put("content",
+                        "Give a direct, useful final answer in the response text. Do not leave the answer blank. " +
+                        "Explain uncertainty briefly and do not invent facts.\\n\\n" + prompt)
+                ))
+                .put("temperature", 0.4)
+                .put("max_tokens", maxTokens)
+                .put("stream", false)
+            connection.outputStream.use { it.write(payload.toString().toByteArray(Charsets.UTF_8)) }
+            val code = connection.responseCode
+            val stream = if (code in 200..299) connection.inputStream else connection.errorStream
+            val body = stream?.bufferedReader()?.use { it.readText() }.orEmpty()
+            if (code !in 200..299) {
+                val detail = runCatching {
+                    JSONObject(body).optJSONObject("error")?.optString("message")
+                }.getOrNull().orEmpty()
+                throw IllegalStateException(
+                    when {
+                        code == 429 -> "The free AI provider is busy or rate-limited. Gaz AI offline is unaffected."
+                        detail.isNotBlank() -> "Free AI error $code: $detail"
+                        else -> "The free AI service returned error $code."
+                    }
+                )
+            }
+            val json = JSONObject(body)
+            val choice = json.optJSONArray("choices")?.optJSONObject(0)
+                ?: throw IllegalStateException("The free AI service returned an empty response.")
+            val message = choice.optJSONObject("message")
+            val rawContent = message?.opt("content") ?: choice.opt("text")
+            val extracted = when (rawContent) {
+                is String -> rawContent
+                is org.json.JSONArray -> (0 until rawContent.length()).mapNotNull { index ->
+                    when (val part = rawContent.opt(index)) {
+                        is String -> part
+                        is JSONObject -> part.optString("text").takeIf { it.isNotBlank() }
+                        else -> null
+                    }
+                }.joinToString("\\n")
+                is JSONObject -> rawContent.optString("text")
+                else -> ""
+            }.trim()
+            if (extracted.isBlank() || extracted.equals("null", ignoreCase = true)) {
+                val finishReason = choice.optString("finish_reason", "unknown")
+                throw IllegalStateException("The free model returned no answer text (finish: $finishReason).")
+            }
+            return extracted
+        } finally {
+            connection.disconnect()
+        }
+    }
+
     fun askStrongerAi(question: String) {
         val prompt = question.trim().take(4000)
         if (prompt.isBlank() || _state.value.strongerBusy) return
@@ -193,57 +258,26 @@ class LocalAiViewModel(app: Application) : AndroidViewModel(app) {
             _state.value = _state.value.copy(strongerBusy = true, strongerReply = "", strongerError = null)
             try {
                 val answer = withContext(Dispatchers.IO) {
-                    val url = URL("https://ai-gateway.kilo.ai/api/v1/chat/completions")
-                    val connection = (url.openConnection() as HttpURLConnection).apply {
-                        requestMethod = "POST"
-                        connectTimeout = 20000
-                        readTimeout = 90000
-                        doOutput = true
-                        setRequestProperty("Content-Type", "application/json")
-                        setRequestProperty("Accept", "application/json")
-                    }
+                    // Auto Free is the main choice. If its selected provider returns an empty
+                    // completion or is temporarily unavailable, try Kilo's separate free
+                    // lightweight route once rather than showing a false "no readable answer".
                     try {
-                        val payload = JSONObject()
-                            .put("model", "kilo-auto/free")
-                            .put("messages", org.json.JSONArray().put(
-                                JSONObject().put("role", "user").put("content",
-                                    "Answer this question carefully and explain uncertainty. Do not assume facts not provided.\\n\\n" + prompt)
-                            ))
-                            .put("temperature", 0.4)
-                            .put("max_tokens", 700)
-                        connection.outputStream.use { it.write(payload.toString().toByteArray(Charsets.UTF_8)) }
-                        val code = connection.responseCode
-                        val stream = if (code in 200..299) connection.inputStream else connection.errorStream
-                        val body = stream?.bufferedReader()?.use { it.readText() }.orEmpty()
-                        if (code !in 200..299) throw IllegalStateException(
-                            if (code == 429) "The free AI service is busy or its shared limit has been reached. Try again later."
-                            else "The free AI service returned error $code. Your offline Gaz AI is still available."
-                        )
-                        val json = JSONObject(body)
-                        val message = json.optJSONArray("choices")?.optJSONObject(0)?.optJSONObject("message")
-                        val rawContent = message?.opt("content")
-                        val extracted = when (rawContent) {
-                            is String -> rawContent
-                            is org.json.JSONArray -> (0 until rawContent.length()).mapNotNull { index ->
-                                val part = rawContent.opt(index)
-                                when (part) {
-                                    is String -> part
-                                    is JSONObject -> part.optString("text").takeIf { it.isNotBlank() }
-                                    else -> null
-                                }
-                            }.joinToString("\\n")
-                            is JSONObject -> rawContent.optString("text")
-                            else -> ""
-                        }.trim()
-                        if (extracted.isBlank() || extracted.equals("null", ignoreCase = true)) {
-                            throw IllegalStateException("The free AI service did not return a readable answer. Try again later.")
+                        requestFreeAi("kilo-auto/free", prompt, 700)
+                    } catch (firstError: Exception) {
+                        try {
+                            requestFreeAi("kilo-auto/small", prompt, 500)
+                        } catch (fallbackError: Exception) {
+                            throw IllegalStateException(
+                                fallbackError.message ?: firstError.message
+                                ?: "The free AI service is temporarily unavailable. Try again later."
+                            )
                         }
-                        extracted
-                    } finally { connection.disconnect() }
+                    }
                 }
                 _state.value = _state.value.copy(strongerReply = answer)
             } catch (e: Exception) {
-                _state.value = _state.value.copy(strongerError = e.message ?: "The free AI service is unavailable.")
+                _state.value = _state.value.copy(strongerError =
+                    e.message ?: "The free AI service is unavailable. Your offline Gaz AI is still available.")
             } finally {
                 _state.value = _state.value.copy(strongerBusy = false)
             }
