@@ -56,8 +56,8 @@ object UserLibrary {
             }
         }
         return matches.sortedByDescending { it.score }.take(limit)
-            .joinToString("\\n\\n") { match ->
-                "[Imported library: ${match.doc.name}]\\n${match.excerpt}"
+            .joinToString("\n\n") { match ->
+                "[Imported library: ${match.doc.name}]\n${match.excerpt}"
             }
     }
 
