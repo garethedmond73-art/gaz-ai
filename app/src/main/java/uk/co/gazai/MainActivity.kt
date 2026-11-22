@@ -22,6 +22,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.MaterialTheme
@@ -79,6 +80,7 @@ private fun GazAiScreen(context: Context) {
     var mode by remember { mutableStateOf("Chat") }
     var draft by remember { mutableStateOf("") }
     var libraryStatus by remember { mutableStateOf("") }
+    var showClearTruthDialog by remember { mutableStateOf(false) }
     val conversationListState = rememberLazyListState()
     val ai = viewModel<LocalAiViewModel>()
     val aiState by ai.state.collectAsStateWithLifecycle()
@@ -127,6 +129,23 @@ private fun GazAiScreen(context: Context) {
                 Modifier.fillMaxSize().navigationBarsPadding().imePadding().padding(horizontal = 12.dp, vertical = 8.dp),
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
+                if (showClearTruthDialog) {
+                    AlertDialog(
+                        onDismissRequest = { showClearTruthDialog = false },
+                        title = { Text("Clear investigation history?") },
+                        text = { Text("This will delete all investigation history and saved notes shown here. Do you want to proceed?") },
+                        confirmButton = {
+                            TextButton(onClick = {
+                                lines.clear()
+                                history.save(lines)
+                                showClearTruthDialog = false
+                            }) { Text("Delete all") }
+                        },
+                        dismissButton = {
+                            TextButton(onClick = { showClearTruthDialog = false }) { Text("Cancel") }
+                        }
+                    )
+                }
                 Text("GAZ AI", style = MaterialTheme.typography.headlineMedium, color = Color.White)
                 Text("Your assistant. Your device. Your data.", color = Color(0xFFB8C7D1), style = MaterialTheme.typography.bodySmall)
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
@@ -219,6 +238,15 @@ private fun GazAiScreen(context: Context) {
                                         style = MaterialTheme.typography.labelMedium
                                     )
                                     Text(line.text, style = MaterialTheme.typography.bodyLarge)
+                                    if (mode == "Truth Detective" && line.role == "note") {
+                                        TextButton(onClick = {
+                                            val noteIndex = lines.indexOf(line)
+                                            if (noteIndex >= 0) {
+                                                lines.removeAt(noteIndex)
+                                                history.save(lines)
+                                            }
+                                        }) { Text("Delete note", color = Color(0xFF9B3D46)) }
+                                    }
                                 }
                             }
                         }
@@ -279,7 +307,10 @@ private fun GazAiScreen(context: Context) {
                             Text("Save note", color = Color(0xFFB8C7D1))
                         }
                     }
-                    TextButton(onClick = { lines.clear(); history.save(lines) }) { Text("Clear history", color = Color(0xFFB8C7D1)) }
+                    TextButton(onClick = {
+                        if (mode == "Truth Detective") showClearTruthDialog = true
+                        else { lines.clear(); history.save(lines) }
+                    }) { Text("Clear history", color = Color(0xFFB8C7D1)) }
                 }
             }
         }
