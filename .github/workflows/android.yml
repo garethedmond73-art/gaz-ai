@@ -56,18 +56,45 @@ jobs:
             adb shell am force-stop uk.co.gazai
             adb shell monkey -p uk.co.gazai -c android.intent.category.LAUNCHER 1
             sleep 25
-            if ! adb shell pidof uk.co.gazai > /dev/null; then
-              echo "FAIL: Truth Detective did not remain running after launch." | tee test-results/emulator-smoke-test.txt
-              adb logcat -d -t 4000 > test-results/logcat.txt
-              exit 1
-            fi
-            if adb logcat -d -t 4000 | grep -E "FATAL EXCEPTION|Process: uk.co.gazai, PID:.*has died" > test-results/crashes.txt; then
-              echo "FAIL: A fatal crash was detected during launch." | tee test-results/emulator-smoke-test.txt
-              adb logcat -d -t 4000 > test-results/logcat.txt
-              exit 1
-            fi
-            echo "PASS: Truth Detective installed and remained running for 25 seconds in the Android emulator." | tee test-results/emulator-smoke-test.txt
-            adb logcat -d -t 4000 > test-results/logcat.txt
+            python3 - <<'PY'
+            import pathlib
+            import subprocess
+            import sys
+
+            results = pathlib.Path("test-results")
+            results.mkdir(exist_ok=True)
+
+            pid = subprocess.run(
+                ["adb", "shell", "pidof", "uk.co.gazai"],
+                capture_output=True, text=True
+            )
+            logs = subprocess.run(
+                ["adb", "logcat", "-d", "-t", "4000"],
+                capture_output=True, text=True
+            ).stdout
+            (results / "logcat.txt").write_text(logs)
+
+            if pid.returncode != 0 or not pid.stdout.strip():
+                (results / "emulator-smoke-test.txt").write_text(
+                    "FAIL: Truth Detective did not remain running after launch.\\n"
+                )
+                sys.exit(1)
+
+            crash_markers = (
+                "FATAL EXCEPTION",
+                "Process: uk.co.gazai, PID:",
+            )
+            if any(marker in logs for marker in crash_markers):
+                (results / "emulator-smoke-test.txt").write_text(
+                    "FAIL: A fatal crash marker was detected during launch.\\n"
+                )
+                sys.exit(1)
+
+            (results / "emulator-smoke-test.txt").write_text(
+                "PASS: Truth Detective installed and remained running for 25 seconds in the Android emulator.\\n"
+            )
+            print("PASS: Truth Detective remained running for 25 seconds.")
+            PY
 
       - name: Upload APK and emulator test report
         if: always()
