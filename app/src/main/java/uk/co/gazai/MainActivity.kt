@@ -252,6 +252,20 @@ private fun GazAiScreen(context: Context) {
                         }
                     }
                 }
+                if (mode != "Library") {
+                    aiState.strongerReply.takeIf { it.isNotBlank() }?.let { answer ->
+                        Card(Modifier.fillMaxWidth(), shape = RoundedCornerShape(12.dp)) {
+                            Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                                Text("FREE STRONGER AI · SECOND OPINION", style = MaterialTheme.typography.labelMedium)
+                                Text(answer, style = MaterialTheme.typography.bodyMedium)
+                                Text("This answer came from an external service and may be wrong. Compare it with Gaz AI and your sources.",
+                                    style = MaterialTheme.typography.bodySmall)
+                            }
+                        }
+                    }
+                    aiState.strongerError?.let { Text(it, color = Color(0xFFFFB4AB), style = MaterialTheme.typography.bodySmall) }
+                    if (aiState.strongerBusy) Text("Contacting the free AI service…", color = Color(0xFFB8C7D1), style = MaterialTheme.typography.bodySmall)
+                }
                 OutlinedTextField(
                     value = draft, onValueChange = { draft = it }, modifier = Modifier.fillMaxWidth(),
                     label = { Text(
@@ -294,6 +308,12 @@ private fun GazAiScreen(context: Context) {
                             mode == "Library" -> "Ask library"
                             else -> "Send"
                         })
+                    }
+                    if (mode != "Library") {
+                        TextButton(
+                            onClick = { ai.askStrongerAi(draft) },
+                            enabled = draft.isNotBlank() && !aiState.strongerBusy
+                        ) { Text(if (aiState.strongerBusy) "Asking…" else "Ask free AI", color = Color(0xFFB8C7D1)) }
                     }
                     if (mode == "Truth Detective") {
                         TextButton(onClick = {
