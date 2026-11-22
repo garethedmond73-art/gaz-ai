@@ -17,6 +17,8 @@ import org.json.JSONObject
 import android.text.Html
 import java.util.concurrent.Executors
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.async
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.asCoroutineDispatcher
@@ -78,7 +80,7 @@ class LocalAiViewModel(app: Application) : AndroidViewModel(app) {
                 systemInstruction = Contents.of(SYSTEM_INSTRUCTION),
                 // Qwen3 can otherwise spend an unlimited number of tokens in its hidden thinking phase.
                 thinkingConfig = ThinkingConfig(enableThinking = false, thinkingTokenBudget = 0),
-                maxOutputToken = 320
+                maxOutputToken = 192
             )
         )
 
@@ -164,7 +166,7 @@ class LocalAiViewModel(app: Application) : AndroidViewModel(app) {
     private fun searchWeb(query: String): String {
         val searchUrl = URL("https://en.wikipedia.org/w/api.php?action=query&list=search&format=json&utf8=1&srlimit=4&srsearch=" + URLEncoder.encode(query.take(180), "UTF-8"))
         val connection = (searchUrl.openConnection() as HttpURLConnection).apply {
-            connectTimeout = 10000; readTimeout = 15000
+            connectTimeout = 5000; readTimeout = 7000
             setRequestProperty("User-Agent", "GazAI-Android/1.0 (offline-first research assistant)")
         }
         try {
@@ -256,10 +258,23 @@ class LocalAiViewModel(app: Application) : AndroidViewModel(app) {
             try {
                 withTimeout(240_000) {
                     val app = getApplication<Application>()
-                    val builtIn = StarterLibrary.promptContext(prompt).take(5000)
-                    val webContext = if (onlineSearchEnabled) runCatching { searchWeb(prompt) }.getOrDefault("") else ""
-                    val imported = UserLibrary.promptContext(app, prompt).take(5000)
-                    val savedNotes = investigationNotes.trim().take(3500)
+                    // Search the web and personal library concurrently so a slow network
+                    // request does not hold up local document retrieval or model preparation.
+                    val (webContext, imported) = coroutineScope {
+                        val webTask = async(Dispatchers.IO) {
+                            if (onlineSearchEnabled) {
+                                try {
+                                    withTimeout(8_000) { searchWeb(prompt) }
+                                } catch (_: Exception) { "" }
+                            } else ""
+                        }
+                        val libraryTask = async(Dispatchers.IO) {
+                            UserLibrary.promptContext(app, prompt).take(3500)
+                        }
+                        webTask.await() to libraryTask.await()
+                    }
+                    val builtIn = StarterLibrary.promptContext(prompt).take(3000)
+                    val savedNotes = investigationNotes.trim().take(1800)
                     val libraryContext = listOf(builtIn, imported).filter { it.isNotBlank() }.joinToString("\n\n")
                     val contextParts = mutableListOf<String>()
                     if (savedNotes.isNotBlank()) contextParts.add("INVESTIGATION NOTES AND PREVIOUS FINDINGS:\n$savedNotes")
