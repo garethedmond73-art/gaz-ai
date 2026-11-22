@@ -2,7 +2,7 @@ name: Truth Detective Android CI
 
 on:
   push:
-    branches: [ "main", "merge/truth-detective-native" ]
+    branches: [ "main", "merge/truth-detective-native", "feature/endless-investigation" ]
   pull_request:
     branches: [ "main" ]
   workflow_dispatch:
